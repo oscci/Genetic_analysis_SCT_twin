@@ -5,6 +5,8 @@
 #This is 149 genes.xlsx
 
 readdir<-"~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio_data/"
+writedir<-readdir
+
 #search term in Scopus
 #TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR GRIN2B OR FOXP2 OR CNTNAP2 
 #OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR ATP13A4 OR ASPM OR androgen receptor OR NLGN4X OR NLGN4Y 
@@ -80,6 +82,7 @@ for (j in 1:nrow(mydf)){
   }
 }
   
-  
+writebit<-paste0(writedir,"gene_summary.csv")
+write.table(mytab, writebit, sep=",",row.names=FALSE) 
   
   
