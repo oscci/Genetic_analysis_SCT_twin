@@ -51,7 +51,9 @@ nkey<-length(keywordlist)
 #add columns to mydf to indicate which genes are included
 addbit<-matrix(data=0,ncol=ngene,nrow=nrecords)
 colnames(addbit)<-genelist
-mydf<-cbind(mydf,addbit)
+addbit2<-matrix(data=0,ncol=nkey,nrow=nrecords)
+colnames(addbit2)<-keywordlist
+mydf<-cbind(mydf,addbit,addbit2)
 
 #initialise table to hold summary results
 mytab<-data.frame(matrix(data=NA,ncol=nkey+2,nrow=ngene))
@@ -61,22 +63,24 @@ for (i in 1:ngene){
 }
 colnames(mytab)[2:(nkey+1)]<-keywordlist
 colnames(mytab)[1]<-'gene'
-colnames(mytab)[nkey+2]<-papers
+colnames(mytab)[nkey+2]<-'papers'
 
 
 #search each row for gene and, if found, for keywords
 #NB for author keywords field DE, for Scopus keywords, field ID
-for (j in 1:nrow(mydf)){
-  mytext<-c(mydf$TI[j],mydf$AB[j],mydf$ID[j]) #all relevant text from title/abs/keyword for this record
+for (j in 1:nrecords){
+  mytext<-c(mydf$TI[j],mydf$AB[j],mydf$ID[j],mydf$DE[j]) #all relevant text from title/abs/keywords for this record
   for (i in 1:ngene){
     g<-genelist[i]
     if(length(grep(g,mytext)) >0)
     {
-      mydf[j,(i+7)]<-mydf[j,(i+7)]+1
+      mytab[i,11]<-mytab[i,11]+1 #add counter for total N papers in mytab
+      mydf[j,(i+7)]<-mydf[j,(i+7)]+1 #mark record in main data frame to show this gene mentioned
       for (k in 1:nkey){
         thiskey<-keywordlist[k]
         if(length(grep(k,mytext)) >0)
-        {mytab[i,(k+1)]<-mytab[i,(k+1)]+1}
+        {mytab[i,(k+1)]<-mytab[i,(k+1)]+1
+        mydf[j,(k+54)]<-mydf[j,(k+54)]+1}
       }
     }
   }
