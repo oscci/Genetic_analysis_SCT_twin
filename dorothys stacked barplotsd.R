@@ -1,10 +1,19 @@
 #modified by DB 3rd Oct 2017
 library(tidyverse)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+library(lattice)
+library(likert)
 
-mydir<-"C:/Users/pthompson/Dropbox/project SCT analysis/Data from redcap/"
-sct.data<-read.csv(paste0(mydir,"SCTData_DATA_2017-10-02_1038.csv"))
+myuser='db' #select mac options
 
-short.sct2<-select(sct.data,ï..record_id,age_at_test,trisomy,pre_postnatal_diag,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
+#mydir<-"C:/Users/pthompson/Dropbox/project SCT analysis/Data from redcap/"
+mydir<-"~/Dropbox/ERCadvanced/project SCT analysis/Data from redcap/"
+writedir<-mydir
+sct.data<-read.csv(paste0(mydir,"SCTData_DATA_2017-10-03_1246.csv"))
+
+short.sct2<-select(sct.data,record_id,age_at_test,trisomy,pre_postnatal_diag,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
                   wdck_jhsn_ss,sent_rep_ss,nonword_rep_ss,oromotor_ss,nara_acc_ss,nara_comp_ss,nara_rate_ss,
                   towre_words_ss,towre_nonwords_ss,phab_pic_ss,phab_digit_ss)
 
@@ -40,33 +49,34 @@ short.sct3<-select(short.sct2,record_id,age_at_test,trisomy,pre_postnatal_diag,w
 oromotor_cat, nara_acc_cat, nara_comp_cat, nara_rate_cat, towre_words_cat, towre_nonwords_cat,
 phab_pic_cat, phab_digit_cat) 
 
+colnames(short.sct3)<-c('ID','age','trisomy','pre_postnatal_diag','Matrices','Blocks','Vocab','Sent. comp',
+                        'Sent Rep','Nonword rep','Oromotor','Read acc',
+                        'Read comp','Read rate','Word read','Nonword read','Pic naming','Digit naming')
 ####plot likert bar
 short.sct3$trisomy[short.sct3$trisomy==9]<-NA
 short.sct3$trisomy<-as.factor(short.sct3$trisomy)
-
-
-
 short.sct3$pre_postnatal_diag<-as.factor(short.sct3$pre_postnatal_diag)
 
 #all
 
-mylik<-likert(short.sct3[5:18])
-plot(mylik)
+my.lik<-likert(short.sct3[5:18])
+plot(my.lik)
 
 
 
 #Pre-natal
-windows(width=22,height=8)
+# windows(width=22,height=8)
+# if(myuser=='db'){
+#   quartz(width=22,height=8)
+#}
+  pdf("prenatal_plot.pdf",width=16,height=8)
+
 
 items_XXX<-short.sct3[short.sct3$trisomy==1&short.sct3$pre_postnatal_diag==0,5:18]
 items_XXY<-short.sct3[short.sct3$trisomy==2&short.sct3$pre_postnatal_diag==0,5:18]
 items_XYY<-short.sct3[short.sct3$trisomy==3&short.sct3$pre_postnatal_diag==0,5:18]
 
-library(gridExtra)
-library(grid)
-library(ggplot2)
-library(lattice)
-library(likert)
+
 
 my.lik_XXX<-likert(items_XXX)
 p1<-plot(my.lik_XXX,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$results[,4],decreasing=T),1])+ ggtitle('XXX') + theme(legend.position="none") + scale_fill_manual(values = c("red", "purple", "blue"))
@@ -80,9 +90,9 @@ p3<-plot(my.lik_XYY,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$r
 
 
 grid.arrange(p1, p2, p3, ncol=3, top = "Pre-natal")
-
+dev.off()
 ##########################################
-
+pdf("postnatal_plot.pdf",width=16,height=8)
 #Post-natal
 items_XXX<-short.sct3[short.sct3$trisomy==1&short.sct3$pre_postnatal_diag==1,5:18]
 items_XXY<-short.sct3[short.sct3$trisomy==2&short.sct3$pre_postnatal_diag==1,5:18]
@@ -101,6 +111,56 @@ p6<-plot(my.lik_XYY,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$r
 
 grid.arrange(p4, p5, p6, ncol=3,top="Post-natal")
 
+dev.off()
+
+pdf("prenatal_lang_plot.pdf",width=11,height=4)
+
+items_XXX<-short.sct3[short.sct3$trisomy==1&short.sct3$pre_postnatal_diag==0,5:11]
+items_XXY<-short.sct3[short.sct3$trisomy==2&short.sct3$pre_postnatal_diag==0,5:11]
+items_XYY<-short.sct3[short.sct3$trisomy==3&short.sct3$pre_postnatal_diag==0,5:11]
+
+my.lik_XXX<-likert(items_XXX)
+p1<-plot(my.lik_XXX,wrap=30,centered=F,
+         plot.percent.low=FALSE,plot.percent.neutral=FALSE,plot.percent.high=FALSE ,
+         group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+
+  ggtitle('XXX') + theme(legend.position="none") + 
+  scale_fill_manual(values = c("red", "purple", "blue"))
+                                                       
+#
+my.lik_XXY<-likert(items_XXY)
+p2<-plot(my.lik_XXY,wrap=30,centered=F,
+         plot.percent.low=FALSE,plot.percent.neutral=FALSE,plot.percent.high=FALSE ,
+         group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+
+  ggtitle('XXY') + theme(legend.position="none") + 
+  scale_fill_manual(values = c("red", "purple", "blue"))
+#
+my.lik_XYY<-likert(items_XYY)
+p3<-plot(my.lik_XYY,wrap=30,centered=F,
+         plot.percent.low=FALSE,plot.percent.neutral=FALSE,plot.percent.high=FALSE ,
+         group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+
+  ggtitle('XYY') + theme(legend.position="none") + 
+  scale_fill_manual(values = c("red", "purple", "blue"))
+#
+grid.arrange(p1, p2, p3, ncol=3, top = "Pre-natal")
+dev.off()
+##########################################
+pdf("postnatal_lang_plot.pdf",width=11,height=4)
+#Post-natal
+items_XXX<-short.sct3[short.sct3$trisomy==1&short.sct3$pre_postnatal_diag==1,5:11]
+items_XXY<-short.sct3[short.sct3$trisomy==2&short.sct3$pre_postnatal_diag==1,5:11]
+items_XYY<-short.sct3[short.sct3$trisomy==3&short.sct3$pre_postnatal_diag==1,5:11]
+
+#
+my.lik_XXX<-likert(items_XXX)
+p4<-plot(my.lik_XXX,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+ ggtitle('XXX') + theme(legend.position="none")+ scale_fill_manual(values = c("red", "purple", "blue"))
+#
+my.lik_XXY<-likert(items_XXY)
+p5<-plot(my.lik_XXY,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+ ggtitle('XXY') + theme(legend.position="none")+ scale_fill_manual(values = c("red", "purple", "blue"))
+#
+my.lik_XYY<-likert(items_XYY)
+p6<-plot(my.lik_XYY,wrap=30,centered=F,group.order=my.lik$results[order(my.lik$results[1:7,4],decreasing=T),1])+ ggtitle('XYY') + theme(legend.position="none")+ scale_fill_manual(values = c("red", "purple", "blue"))
 
 
+grid.arrange(p4, p5, p6, ncol=3,top="Post-natal")
 
+dev.off()
