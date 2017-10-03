@@ -1,5 +1,6 @@
 #Identifying genes for study
 #Program by DVM Bishop, started 30/09/17
+#Updated 3/10/17 to include scatterplot of candidate genes
 
 #Initial gene list by Dianne and Nuala selected on basis of association with language/literacy/laterality.
 #This is 149 genes.xlsx
@@ -51,8 +52,10 @@ nkey<-length(keywordlist)
 #add columns to mydf to indicate which genes are included
 addbit<-matrix(data=0,ncol=ngene,nrow=nrecords)
 colnames(addbit)<-genelist
+colnames(addbit)[18]<-'AR' #shorten for column headings, though use full term for search
 addbit2<-matrix(data=0,ncol=nkey,nrow=nrecords)
 colnames(addbit2)<-keywordlist
+colnames(addbit2)[9]<-'SLI'#shorten for column headings, though use full term for search
 mydf<-cbind(mydf,addbit,addbit2)
 
 #initialise table to hold summary results
@@ -62,6 +65,7 @@ for (i in 1:ngene){
   mytab[i,1]<-genelist[i]
 }
 colnames(mytab)[2:(nkey+1)]<-keywordlist
+colnames(mytab)[10]<-'SLI' #shortened name
 colnames(mytab)[1]<-'gene'
 colnames(mytab)[nkey+2]<-'papers'
 
@@ -78,7 +82,7 @@ for (j in 1:nrecords){
       mydf[j,(i+7)]<-mydf[j,(i+7)]+1 #mark record in main data frame to show this gene mentioned
       for (k in 1:nkey){
         thiskey<-keywordlist[k]
-        if(length(grep(k,mytext)) >0)
+        if(length(grep(thiskey,mytext)) >0)
         {mytab[i,(k+1)]<-mytab[i,(k+1)]+1
         mydf[j,(k+54)]<-mydf[j,(k+54)]+1}
       }
@@ -88,5 +92,15 @@ for (j in 1:nrecords){
   
 writebit<-paste0(writedir,"gene_summary.csv")
 write.table(mytab, writebit, sep=",",row.names=FALSE) 
-  
-  
+
+mytab<-filter(mytab,papers>2) #only consider if at least 3 papers
+myrows<-nrow(mytab)
+for (i in 1:myrows){
+
+mytab$p_neuro[i]<-max(mytab$SYNAP[i],mytab$NEUREXIN[i],mytab$NEUROLIGIN[i])/mytab$papers[i]
+mytab$p_lang[i]<-max(mytab$AUTIS[i],mytab$language[i],mytab$reading[i],mytab$dyslexia[i],mytab$SLI[i])/mytab$papers[i]
+}
+
+ggplot(mytab, aes(x= p_lang, y= p_neuro, label=gene))+
+  geom_point() +geom_text(aes(label=gene),hjust=.2, vjust=.2,cex=3)
+
