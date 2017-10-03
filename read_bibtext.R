@@ -24,7 +24,7 @@ bibfile<-'gene_synapse_lang.bib'
 require(bibliometrix)
 #https://cran.r-project.org/web/packages/bibliometrix/vignettes/bibliometrix-vignette.html
 require(tidyverse)
-
+require(ggrepel) #avoids overlap in scatterplot labels
 mybib<-paste0(readdir,bibfile)
 D <- readFiles(mybib)
 
@@ -100,7 +100,11 @@ for (i in 1:myrows){
 mytab$p_neuro[i]<-max(mytab$SYNAP[i],mytab$NEUREXIN[i],mytab$NEUROLIGIN[i])/mytab$papers[i]
 mytab$p_lang[i]<-max(mytab$AUTIS[i],mytab$language[i],mytab$reading[i],mytab$dyslexia[i],mytab$SLI[i])/mytab$papers[i]
 }
-
-ggplot(mytab, aes(x= p_lang, y= p_neuro, label=gene))+
-  geom_point() +geom_text(aes(label=gene),hjust=.2, vjust=.2,cex=3)
+mytab2<-filter(mytab,p_neuro>0)
+mytab2<-filter(mytab2,p_lang>0)
+ggplot(mytab2, aes(x= p_lang, y= p_neuro, label=gene))+
+  xlab('Proportion with language/reading')+
+  ylab('Proportion with synapse/neurexin/neuroligin')+
+  ggtitle('                Papers from SCOPUS search')+
+  geom_point() +geom_text_repel(aes(label=gene),cex=3)
 
