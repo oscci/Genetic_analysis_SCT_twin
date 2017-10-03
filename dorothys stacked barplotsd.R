@@ -1,4 +1,4 @@
-
+#modified by DB 3rd Oct 2017
 library(tidyverse)
 
 mydir<-"C:/Users/pthompson/Dropbox/project SCT analysis/Data from redcap/"
