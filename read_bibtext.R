@@ -1,6 +1,7 @@
 #Identifying genes for study
 #Program by DVM Bishop, started 30/09/17
 #Updated 3/10/17 to include scatterplot of candidate genes
+#Updated 8/10/17 to include PAR genes
 
 #Initial gene list by Dianne and Nuala selected on basis of association with language/literacy/laterality.
 #This is 149 genes.xlsx
@@ -20,6 +21,7 @@ writedir<-readdir
 #On 1st Oct 2017 generated 1203 results.
 
 bibfile<-'gene_synapse_lang.bib'
+bibfile<-'scopus-par.bib'
 
 require(bibliometrix)
 #https://cran.r-project.org/web/packages/bibliometrix/vignettes/bibliometrix-vignette.html
@@ -44,6 +46,11 @@ genelist<-c('ATP2C2', 'ROBO1', 'DCDC2', 'C2ORF3', 'MRPL19', 'AUTS2', 'BDNF', 'GR
             'PCSK6', 'SRPX2', 'LRRTM1', 'GNPTG', 'NAGPA', 'RBFOX2', 'GNPTAB', 'DRD4', 'ELP4', 'NOP9')
 #NB AR gene is problematic because AR is embedded in many words, so spelt out here
 
+genelist<-c('AKAP17A', 'ASMT', 'ASMTL', 'ASMTL-AS1', 'CD99', 'CD99P1', 'CRLF2', 'CSF2RA', 'DHRSX', 'DHRSX-IT1', 
+            'FABP5P13', 'GTPBP6', 'IL3RA', 'LINC00102', 'LINC00106', 'LINC00685', 'MIR3690', 'MIR6089', 'PLCXD1', 
+            'PPP2R3B', 'P2RY8', 'SHOX', 'SLC25A6', 'XG', 'ZBED1', 'AMD1P2', 'DDX11L16', 'DPH3P2', 'IL9R', 'SPRY3',
+            'ELOCP24', 'TRPC6P', 'VAMP7', 'WASH6P', 'WASIR1')
+
 keywordlist<-c('SYNAP','NEUREXIN','NEUROLIGIN','AUTIS','LANGUAGE','READING','SPEECH','DYSLEXIA','SPECIFIC LANGUAGE IMPAIRMENT')
 
 ngene<-length(genelist)
@@ -52,7 +59,7 @@ nkey<-length(keywordlist)
 #add columns to mydf to indicate which genes are included
 addbit<-matrix(data=0,ncol=ngene,nrow=nrecords)
 colnames(addbit)<-genelist
-colnames(addbit)[18]<-'AR' #shorten for column headings, though use full term for search
+#colnames(addbit)[18]<-'AR' #shorten for column headings, though use full term for search
 addbit2<-matrix(data=0,ncol=nkey,nrow=nrecords)
 colnames(addbit2)<-keywordlist
 colnames(addbit2)[9]<-'SLI'#shorten for column headings, though use full term for search
@@ -84,13 +91,13 @@ for (j in 1:nrecords){
         thiskey<-keywordlist[k]
         if(length(grep(thiskey,mytext)) >0)
         {mytab[i,(k+1)]<-mytab[i,(k+1)]+1
-        mydf[j,(k+54)]<-mydf[j,(k+54)]+1}
+        mydf[j,(k+7+ngene)]<-mydf[j,(k+7+ngene)]+1}
       }
     }
   }
 }
   
-writebit<-paste0(writedir,"gene_summary.csv")
+writebit<-paste0(writedir,"gene_par_summary.csv")
 write.table(mytab, writebit, sep=",",row.names=FALSE) 
 
 mytab<-filter(mytab,papers>2) #only consider if at least 3 papers
