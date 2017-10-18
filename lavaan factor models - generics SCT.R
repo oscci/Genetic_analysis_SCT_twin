@@ -3,7 +3,7 @@
 # Phenotype generator - takes input from REDcap and then generates factor scores based on data.
 #
 ###############################################################################################
-install.packages(c("data.table","scales","lavaan"))
+#install.packages(c("data.table","scales","lavaan"))
 library(devtools) # to run script from gist and bring in data
 library(lavaan)
 library(semPlot)
@@ -11,6 +11,7 @@ library(knitr)
 library(ggplot2)
 library(reshape2)
 library(psych)
+ library(xlsx)
 
 
 # 18-09-2017
@@ -21,14 +22,14 @@ require(tidyverse)
 #P.thompson - updated for data fixes in raw data - 02-10-2017 
 
 ##Reference: https://www.r-bloggers.com/computing-and-visualizing-pca-in-r/ # code originally from this site.
-mydir<-"C:/Users/pthompson/Dropbox/project SCT analysis/Extrapolated_norms/"
+mydir<-"c:/Users/pthompson/Dropbox/project SCT analysis/data from redcap/"
 sct.data<-read.csv(paste0(mydir,"SCTData_DATA_2017-10-02_1038.csv"))
 twin.data<-read.csv(paste0(mydir,"TwinsData_DATA_2017-10-02_1037.csv"))
 
-short.sct<-select(sct.data,ï..record_id,age_at_test,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
+short.sct<-dplyr::select(sct.data,ï..record_id,age_at_test,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
                   wdck_jhsn_ss,sent_rep_ss,nonword_rep_ss,oromotor_ss,nara_acc_ss,nara_comp_ss,nara_rate_ss,
                   towre_words_ss,towre_nonwords_ss,phab_pic_ss,phab_digit_ss)
-short.twin<-select(twin.data,record_id,age_at_test,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
+short.twin<-dplyr::select(twin.data,record_id,age_at_test,wasi_matrices_ss,wasi_block_design_ss,wasi_vocab_ss,
                   wdck_jhsn_ss,sent_rep_ss,nonword_rep_ss,oromotor_ss,nara_acc_ss,nara_comp_ss,nara_rate_ss,
                   towre_words_ss,towre_nonwords_ss,phab_pic_ss,phab_digit_ss)
 short.sct$source<-'sct'
@@ -84,11 +85,6 @@ library(reshape2)
 
 data.f1<-all.data[,3:16]
 
-#plot variable distributions
-mydata.melt <- melt(data.f1)
-ggplot(mydata.melt, aes(x = value)) + 
-  facet_wrap(~variable,scales = "free_x") +
-  geom_density() 
 
 #Single factor model
 
@@ -150,12 +146,28 @@ write.xlsx(fs3,file="factor_scores_SCT.xlsx",sheetName="Two_factor corr CFA",row
 
 ##########
 
+model.f4 <- ' f1 =~ Vocab_ss + WJ_ss + Sent_Rep_ss + Oro_ss + Nword_Rep_ss
+              f2 =~ Nara_acc + Nara_comp + Nara_rate + Words_ss + Nwords_ss + Pics_ss + Digit_ss
+              f3 =~ matrices_ss + blockD_ss'     
+fit.mod.D <- cfa(model.f4, data = data.f1,estimator = "ML",missing = "ML")
+
+lbls<-c("Vocab", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor", "Nonword\nRepetition","NARA\nAccuracy","NARA\nComp","NARA\nRate","Towre\nWords","Towre\nNonwords","Phab\nPictures", "Phab\nDigits","WASI\nMatrices","WASI\nBlock D", "Language","Reading","Nonverbal\nIQ")
+semPaths(fit.mod.D, "std", title = TRUE,nodeLabels=lbls,intercepts = FALSE)
+
+fs4<-data.frame(record_id=all.data$record_id,lavPredict(fit.mod.D))
+
+write.xlsx(fs4,file="factor_scores_SCT.xlsx",sheetName="Three_factor corr CFA",row.names = F,append = TRUE)
 #######
 
-library(nFactors)
+model.f5 <- ' f1 =~ Vocab_ss + WJ_ss + Sent_Rep_ss + Oro_ss + Nword_Rep_ss
+              Vocab_ss ~~ WJ_ss'     
+fit.mod.E <- cfa(model.f5, data = data.f1,estimator = "ML",missing = "ML")
 
-ev <- eigen(cor(data.f1[,1:14],use= "na.or.complete")) # get eigenvalues
-ap <- parallel(subject=nrow(data.f1[,1:14]),var=ncol(data.f1[,1:14]),
-  rep=100,cent=.05)
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-plotnScree(nS)
+lbls<-c("Vocabulary", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor", "Nonword\nRepetition", "Language")
+semPaths(fit.mod.E, "std", title = TRUE, curvePivot = TRUE, edge.label.cex = 1.2,width=10,height=5,nodeLabels=lbls,intercepts = FALSE,sizeMan = 10, sizeLat = 10)
+
+fs5<-data.frame(record_id=all.data$record_id,lavPredict(fit.mod.E))
+write.xlsx(fs5,file="factor_scores_SCT.xlsx",sheetName="language_factor CFA",row.names = F,append = TRUE)
+#######
+
+
