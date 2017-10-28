@@ -25,7 +25,7 @@ myN<-140 #set sample size per group (You can vary this to see the effect)
 i <-0
 nSims<-5000 #arbitary N simulations
 mycutoff<- -1 #differs from SQING bcs final group is a mix of cutoff and noncutoff
-mylo.p<-c(.01,.1,.3,.5,.7) #proportion of cases selected as below cutoff
+mylo.p<-c(.01,.2,.4,.6,.8) #proportion of cases selected as below cutoff
 corrlist<-c(.25)
 summarytable<-data.frame(matrix(rep(NA,12*length(mylo.p)*nSims),ncol=12)) #initialise table to hold results
 colnames(summarytable)<-c('Nsub','truer','cutoff','proplo','p.r','p.chi','N_aa','N_Aa','N_AA',
@@ -145,5 +145,18 @@ colnames(aggdata)[5:7]<-c('aa','aA','AA')
 # text(.6,1.15,paste('N = ',as.integer(aggdata[4,2])),cex=.8)
 # text(1.8,1.18,paste('N = ',as.integer(aggdata[4,3])),cex=.8)
 # text(3.1,1.235,paste('N = ',as.integer(aggdata[4,4])),cex=.8)
+
+
+readRDS(file=rdsname)
+for (j in mylo.p){ #range of proportions to loop through
+mybit<-filter(summarytable, proplo==j)
+thisN<-nrow(mybit)
+if (j==.01)
+{allpower<-as.integer(100*length(which(mybit$p.r<.1))/thisN)}
+if (j>.01){
+allpower<-c(allpower,as.integer(100*length(which(mybit$p.r<.1))/thisN))
+}
+}
+aggdata$power<-allpower
 
 
