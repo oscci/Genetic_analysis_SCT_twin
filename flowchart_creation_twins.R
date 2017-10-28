@@ -1,4 +1,7 @@
 #Produces flow chart showing group membership and exclusions
+#Original version September 2017 for PeerJ submission of twin laterality paper.
+
+#Updated 28th Oct 2017 to incorporate updated twin file with random twin selection
 
 #install.packages('DiagrammeR')
 library(DiagrammeR)
@@ -11,10 +14,14 @@ library(xlsx)
 library(tidyverse)
 library(stringr)
 
-dir<-"C:\\Users\\Alex\\Dropbox\\project twin kids\\"
-#dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/Data/"
+#dir<-"C:\\Users\\Alex\\Dropbox\\project twin kids\\"
+dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/Data/"
 
-main.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-08-19_1139.csv"))
+#main.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-08-19_1139.csv"))
+main.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-10-28_0620.csv")) #NB latest version
+#this version has additional columns, so need to make column references dynamic later on
+
+my.ncol<-ncol(main.data)
 
 #record exclusions for reporting in the paper
 n.ASD<-sum(main.data$lang_probs==2)
@@ -23,18 +30,11 @@ n.hearing<-sum(main.data$lang_probs==4)
 n.other<-sum(main.data$include==0)-(n.ASD+n.ID+n.hearing)
 
 
-#Note that some family IDs are NA, as are codes for twin 1 and twin 2.
-#This code adds these values where they are missing based on record ID
-for(i in 1:length(main.data$fam_id)){
-  if(is.na(main.data$fam_id[i])){main.data$fam_id[i]<-substr(main.data$record_id[i],1,nchar(as.character(main.data$record_id[i]))-1)}
-  if(is.na(main.data$twin[i])){main.data$twin[i]<-car::recode(str_extract(as.character(main.data$record_id[i]), "[A-Z]+" ),"'A'=1;'B'=2")}
-}
-
 #main.data codes whether parent reports their child as having language problems (1) or not (0). Now need to code whether twin pair is concordant
 #for DLD (2), discordant for DLD (1), or neither child has DLD (0)
 fam_ids<-unique(main.data$fam_id)
-main.data<-cbind(main.data,matrix(0,ncol=2,nrow=length(main.data$record_id)))
-colnames(main.data)[c(352,353)]<-c("parent_rep_pair","DLD_pair")
+main.data<-cbind(main.data,matrix(0,ncol=2,nrow=length(main.data$record_id)))#add 2 new columns
+colnames(main.data)[(my.ncol+1):(my.ncol+2)]<-c("parent_rep_pair","DLD_pair")
 for(i in 1:length(fam_ids)){
   mytwins_DLDstatus<-main.data$lang_probs[which(main.data$fam_id==fam_ids[i])]
   if(mytwins_DLDstatus[1]==0 & mytwins_DLDstatus[2]==0){
@@ -60,7 +60,7 @@ for(i in 1:length(fam_ids)){
   main.data$parent_rep_pair[which(main.data$fam_id==fam_ids[i])]<-sum(main.data$parental_report_dld[which(main.data$fam_id==fam_ids[i])])
   #main.data$DLD_pair[which(main.data$fam_id==fam_ids[i])]<-sum(main.data$lang_probs[which(main.data$fam_id==fam_ids[i])])
 }
-
+table(main.data$parent_rep_pair)
 #subset by parental report of DLD or no language problems reported
 main.bothDLD<-subset(main.data,parent_rep_pair==2)
 main.oneDLD<-subset(main.data,parent_rep_pair==1)
