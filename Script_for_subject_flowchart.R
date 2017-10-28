@@ -9,7 +9,6 @@ library(magrittr)
 library(svglite)
 library(rsvg)
 library(png)
-library(xlsx)
 library(tidyverse)
 library(stringr)
 #Function to detect if OS is PC or Macintosh and set path accordingly
@@ -78,6 +77,8 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
   n.A<-dim(postnatals)[1]
   n.B<-dim(prenatals)[1]
   
+  no_dna.B<-length(which(postnatals$dna_ok==0))
+  no_dna.A<-length(which(prenatals$dna_ok==0))
   #subset by karyotype
   xxx2<-subset(postnatals,trisomy==1)
   xxy2<-subset(postnatals,trisomy==2)
@@ -92,6 +93,8 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
   n.F<-dim(xxx2)[1]
   n.G<-dim(xxy2)[1]
   n.H<-dim(xyy2)[1]
+  
+  
   
   #now check DNA status
   n.I=length(which(xxx1$dna_ok>0))
@@ -112,8 +115,8 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
               # node definitions with substituted label text
               node [shape = plaintext, fontname = Helvetica]
               X[label='@@1']
-              Y[label= 'Trisomy']
-              Z[label = 'With DNA']
+              Y[label= 'Excluded: DNA quality']
+              Z[label = 'Trisomy']
               
               node [shape=square]
               A[label='@@2',fillcolor=lightBlue]
@@ -127,20 +130,15 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
               H[label='@@9']
               I[label='@@10']
               J[label='@@11']
-              K[label='@@12']
-              L[label='@@13']
-              M[label='@@14']
-              N[label='@@15']
+     
+ 
               
               # edge definitions with the node IDs
-              A -> {C D E}
-              B -> {F G H}
-              C -> I
-              D -> J
-              E -> K
-              F -> L
-              G -> M
-              H -> N
+              A -> C
+              B -> D
+              C -> {E,F,G}
+              D -> {H,I,J}
+             
               
               
               X -> Y [alpha=0,color='white']
@@ -148,25 +146,22 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
               }
               
               [1]: paste0(label3, ':\\n ',' Recruited from')
-              [2]: paste0(label1,':\\n', 'NHS: N = ',y1,':\\n', 'Other: N = ',y2)
-              [3]: paste0(label2,':\\n', 'NHS: N = ',z1,':\\n' ,'Other: N = ',z2)
-              [4]: paste0('XXX',':\\n', 'N = ',n.C)
-              [5]: paste0('XXY',' :\\n', 'N = ',n.D)
-              [6]: paste0('XYY',' :\\n', 'N = ',n.E)
-              [7]: paste0('XXX',' :\\n', 'N = ',n.F)
-              [8]: paste0('XXY',' :\\n', 'N = ',n.G)
-              [9]: paste0('XYY',' :\\n', 'N = ',n.H)
-              [10]: paste0('N = ',n.I)
-              [11]: paste0('N = ',n.J)
-              [12]: paste0('N = ',n.K)
-              [13]: paste0('N = ',n.L)
-              [14]: paste0('N = ',n.M)
-              [15]: paste0('N = ',n.N)
+              [2]: paste0(label1,':\\n', 'NHS: N = ',y1,'\\n', 'Other: N = ',y2)
+              [3]: paste0(label2,':\\n', 'NHS: N = ',z1,'\\n' ,'Other: N = ',z2)
+              [4]: paste0('N = ',no_dna.A)
+              [5]: paste0('N = ',no_dna.B)
+              [6]: paste0('XXX','\\n', 'N = ',n.I)
+              [7]: paste0('XXY',' \\n', 'N = ',n.J)
+              [8]: paste0('XYY',' \\n', 'N = ',n.K)
+              [9]: paste0('XXX',' \\n', 'N = ',n.L)
+              [10]: paste0('XXY',' \\n', 'N = ',n.M)
+              [11]: paste0('XYY',' \\n', 'N = ',n.N)
+       
               "))
   
   
 }
-flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow.png")
+#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow.png")
 
 #Now do plot for twin data
 
@@ -260,4 +255,4 @@ print(grViz("
             
             "))
 
-flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("twins_flow.png")
+#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("twins_flow.png")
