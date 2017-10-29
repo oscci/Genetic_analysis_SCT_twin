@@ -1,27 +1,30 @@
 #Identifying genes for study
 #Program by DVM Bishop, started 30/09/17
 #Updated 3/10/17 to include scatterplot of candidate genes
-#Updated 8/10/17 to include PAR genes
+#Updated 8/10/17 to include search based on PAR genes
 
-#Initial gene list by Dianne and Nuala selected on basis of association with language/literacy/laterality.
+#Initial gene list by Dianne and Nuala selected on basis of association with language.
 #This is 149 genes.xlsx
-
+# From sessionInfo()
+# R version 3.4.1 (2017-06-30)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS Sierra 10.12.6
 readdir<-"~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio_data/"
 writedir<-readdir
 
 #search term in Scopus
 #TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR GRIN2B OR FOXP2 OR CNTNAP2 
 #OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR ATP13A4 OR ASPM OR androgen receptor OR NLGN4X OR NLGN4Y 
-#OR CCKAR OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 OR DIP2A OR FMR1 OR BCL11A OR FOXP1
-#OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR PCSK6 OR SRPX2 OR LRRTM1 OR GNPTG OR NAGPA OR RBFOX2 OR 
+#OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 OR DIP2A OR FMR1 OR BCL11A OR FOXP1
+#OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR SRPX2 OR GNPTG OR NAGPA OR RBFOX2 OR 
 #GNPTAB OR DRD4 OR ELP4 OR NOP9) 
 #AND KEY(synap* OR neurexin OR neuroligin OR autism OR language OR dyslexia OR reading OR SLI) 
 #AND KEY(human) AND NOT TITLE(review)
 
-#On 1st Oct 2017 generated 1203 results.
+#On 29th Oct 2017 generated 1200 results.
 
-bibfile<-'gene_synapse_lang.bib'
-bibfile<-'scopus-par.bib'
+bibfile<-'gene_synapse_language.bib'
+#bibfile<-'scopus-par.bib' #Use this version for PAR (pseudoautosomal region) genes
 
 require(bibliometrix)
 #https://cran.r-project.org/web/packages/bibliometrix/vignettes/bibliometrix-vignette.html
@@ -41,15 +44,16 @@ nrecords<-nrow(mydf)
 
 genelist<-c('ATP2C2', 'ROBO1', 'DCDC2', 'C2ORF3', 'MRPL19', 'AUTS2', 'BDNF', 'GRIN2B', 'FOXP2',
             'CNTNAP2', 'KIAA0319', 'DYX1C1', 'CMIP', 'DRD2', 'APOE', 'ATP13A4', 'ASPM', 'ANDROGEN RECEPTOR', 
-            'NLGN4X', 'NLGN4Y', 'CCKAR', 'AP4E1', 'ARID1B', 'S100B', 'CCDC136', 'FLNC', 'ERC1', 
+            'AP4E1', 'ARID1B', 'S100B', 'CCDC136', 'FLNC', 'ERC1', 
             'NRXN1', 'DIP2A', 'FMR1', 'BCL11A', 'FOXP1', 'SETBP1', 'DISC1', 'GRM3', 'GRIN2A', 'COMT',
-            'PCSK6', 'SRPX2', 'LRRTM1', 'GNPTG', 'NAGPA', 'RBFOX2', 'GNPTAB', 'DRD4', 'ELP4', 'NOP9')
+             'SRPX2', 'GNPTG', 'NAGPA', 'RBFOX2', 'GNPTAB', 'DRD4', 'ELP4', 'NOP9')
 #NB AR gene is problematic because AR is embedded in many words, so spelt out here
 
-genelist<-c('AKAP17A', 'ASMT', 'ASMTL', 'ASMTL-AS1', 'CD99', 'CD99P1', 'CRLF2', 'CSF2RA', 'DHRSX', 'DHRSX-IT1', 
-            'FABP5P13', 'GTPBP6', 'IL3RA', 'LINC00102', 'LINC00106', 'LINC00685', 'MIR3690', 'MIR6089', 'PLCXD1', 
-            'PPP2R3B', 'P2RY8', 'SHOX', 'SLC25A6', 'XG', 'ZBED1', 'AMD1P2', 'DDX11L16', 'DPH3P2', 'IL9R', 'SPRY3',
-            'ELOCP24', 'TRPC6P', 'VAMP7', 'WASH6P', 'WASIR1')
+# Alternative genelist used with PAR genes
+# genelist<-c('AKAP17A', 'ASMT', 'ASMTL', 'ASMTL-AS1', 'CD99', 'CD99P1', 'CRLF2', 'CSF2RA', 'DHRSX', 'DHRSX-IT1', 
+#             'FABP5P13', 'GTPBP6', 'IL3RA', 'LINC00102', 'LINC00106', 'LINC00685', 'MIR3690', 'MIR6089', 'PLCXD1', 
+#             'PPP2R3B', 'P2RY8', 'SHOX', 'SLC25A6', 'XG', 'ZBED1', 'AMD1P2', 'DDX11L16', 'DPH3P2', 'IL9R', 'SPRY3',
+#             'ELOCP24', 'TRPC6P', 'VAMP7', 'WASH6P', 'WASIR1')
 
 keywordlist<-c('SYNAP','NEUREXIN','NEUROLIGIN','AUTIS','LANGUAGE','READING','SPEECH','DYSLEXIA','SPECIFIC LANGUAGE IMPAIRMENT')
 
@@ -97,7 +101,7 @@ for (j in 1:nrecords){
   }
 }
   
-writebit<-paste0(writedir,"gene_par_summary.csv")
+writebit<-paste0(writedir,"gene_synapse_summary.csv")
 write.table(mytab, writebit, sep=",",row.names=FALSE) 
 
 mytab<-filter(mytab,papers>2) #only consider if at least 3 papers
@@ -105,7 +109,7 @@ myrows<-nrow(mytab)
 for (i in 1:myrows){
 
 mytab$p_neuro[i]<-max(mytab$SYNAP[i],mytab$NEUREXIN[i],mytab$NEUROLIGIN[i])/mytab$papers[i]
-mytab$p_lang[i]<-max(mytab$AUTIS[i],mytab$language[i],mytab$reading[i],mytab$dyslexia[i],mytab$SLI[i])/mytab$papers[i]
+mytab$p_lang[i]<-max(mytab$AUTIS[i],mytab$language[i],mytab$reading[i],mytab$dyslexia[i],mytab$SLI[i],mytab$SPEECH[i])/mytab$papers[i]
 }
 mytab2<-filter(mytab,p_neuro>0)
 mytab2<-filter(mytab2,p_lang>0)
