@@ -8,7 +8,7 @@
 # Program based on SQING Simulation of genotype-phenotype relations by DVM Bishop
 # See script 'simulating_genopheno_cutoffs.R' on https://osf.io/nxspw
 # Note, however, that in SQING we looked at sampling bias that led to restriction of range
-# in phenotypes. Here we look at oversampling of impaired cases that does not affect the range.
+# in phenotypes. Here we look at oversampling of impaired cases that does not affect the range of the combined sample.
 
 # This version started 18th October 2017 by D. V. M.Bishop
 
@@ -23,18 +23,41 @@
 library(MASS) #for mvrnorm function to make multivariate normal distributed vars
 library(tidyverse)
 options(scipen=999) #disable scientific notation.
+# Use real data to determine % with ascertainment bias, and how big the impact
+dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project SCT analysis/SCT_ASD_analysis/Project_files/Data/"
+mydata <- read.csv(paste0(dir,"SCTData_DATA_2017-11-01_1815.csv"))
+mydata<-filter(mydata,trisomy<9) #remove case of isochromosome
+#deal with missing data
+for (mycol in 68:228){
+  mymiss=which(mydata[,mycol]>900)
+  mydata[mymiss,mycol]=NA
+}
+require(psych)
+mydata$subgp<-1
+w<-c(which(mydata$why_tested==2),which(mydata$why_tested==3))
+mydata$subgp[w]<-2
+describeBy(mydata$sent_rep_ss,mydata$subgp)
+#Shows that difference in mean for groups by asc bias is around .9
+#(Consistent with Paul's analysis of language factor)
 #-------------------------------------------------------------------------
 # Specify parameters to create correlated variables
 #-------------------------------------------------------------------------
+#NB actual data 50% selected bcs behav/neuro problems; with effect size d = .9
 nVar<-2 #number of simulated variables 
 myM<-0 # Mean score for simulated variables
 myVar<-1 #Variance for simulated variables
-myN<-125 #set sample size per group (You can vary this to see the effect)
-i <-0
+myN<-130 #set sample size per group (You can vary this to see the effect)
+
 nSims<-5000 #arbitary N simulations
-mycutoff<- -1 #final group will be a mix of general population and below cutoff
-mylo.p<-c(.01,.2,.4,.6,.8) #proportion of cases selected as below cutoff (we will loop through these values)
-corrlist<-c(.25) #actual correlation between vars
+mycutoff<- -.25 #final group will be a mix of general population and below cutoff
+#This value selected to give mean difference (Cohen's d) between selected/unselected cases around .9
+#(Can check at end by comparing mean.selected and mean.unselected)
+mylo.p<-c(.01,.25,.5,.99) #proportion of cases selected as below cutoff (we will loop through these values)
+#1st value allows estimate of totally unselected; last value for totally selected
+
+corrlist<-c(.29) #actual correlation between vars; corresponds to effect size for impact of genotype, d, of .5^2 
+#NB; correl with genotype is lower than with z because genotype is noncontinuous
+#value of .29 here gives correl with genotype of around .25
 summarytable<-data.frame(matrix(rep(NA,12*length(mylo.p)*nSims),ncol=12)) #initialise table to hold results
 colnames(summarytable)<-c('Nsub','truer','cutoff','proplo','p.r','p.chi','N_aa','N_Aa','N_AA',
                           'mean_aa','mean_Aa','mean_AA')
@@ -46,7 +69,7 @@ for (myCorr in corrlist){ #correlation between variables; can loop through vario
   myCov<-matrix(rep(myCorr,nVar*nVar),nrow=nVar) #rep(x,y) will generate y values of x
   diag(myCov)<-rep(myVar,nVar)  #variance on diagonal
   mydata<-data.frame(mvrnorm(n = myN*100, rep(myM,nVar), myCov)) #make big population to select from
-  colnames(mydata)<-c('myz','pheno')
+  colnames(mydata)<-c('myz','pheno') #correlated geno and pheno, where myz is geno
   
   #---------------------------------------------------------------------------------------
   # convert the random normal deviates to genotype values of 0, 1 or 2, depending on MAF
@@ -74,6 +97,7 @@ for (myCorr in corrlist){ #correlation between variables; can loop through vario
   mychi<-chisq.test(rbind(myevalue,myovalue))
   #---------------------------------------------------------------------------------------
   #Start simulation loop here  
+  i <-0
   for (k in 1:nSims){
     
     for (j in mylo.p){ #range of cutoffs to loop through
@@ -87,7 +111,7 @@ for (myCorr in corrlist){ #correlation between variables; can loop through vario
       summarytable[i,3]<- mycutoff 
       summarytable[i,4]<-proplo #proportion of low ('late ascertained') cases this run
       
-      lobit<-filter(mydata,pheno<j) #Cases that are below cutoff
+      lobit<-filter(mydata,pheno<mycutoff) #Cases that are below cutoff
       n.sel<-as.integer(myN*j) #N cases selected because below cutoff
       s<-sample(nrow(lobit),n.sel,replace=FALSE) #sample this N cases without replacement from those below cutoff
       selsample<-lobit[s,]
@@ -149,12 +173,9 @@ lines(aggdata$proplo,aggdata$log.pr,col='blue',type='o',pch=18)
 abline(h=log10(.05),col='red',lty=2)
 
 
-
-colnames(aggdata)[5:7]<-c('aa','aA','AA')
-
 #rdsname<-'rds_N120_r_0.25.rds' #can substitute name of previous saved file here
 rdsname<-paste0('rds_N',myN,'_r_',myCorr,'.rds')
-allpower<-0 #initialise
+allpower1<-allpower2<-0 #initialise
 readRDS(file=rdsname)
 thisloop<-0
 for (j in mylo.p){ #range of proportions to loop through
@@ -163,11 +184,22 @@ for (j in mylo.p){ #range of proportions to loop through
   thisN<-nrow(mybit)
   #for power for 1 tailed test, find runs where p.r < .1
   if (thisloop==1)
-  {allpower<-as.integer(100*length(which(mybit$p.r<.1))/thisN)}
+  {
+    allpower2<-as.integer(100*length(which(mybit$p.r<.05))/thisN)
+    allpower1<-as.integer(100*length(which(mybit$p.r<.1))/thisN)}
   if (thisloop>1){
-    allpower<-c(allpower,as.integer(100*length(which(mybit$p.r<.1))/thisN))
+    allpower1<-c(allpower1,as.integer(100*length(which(mybit$p.r<.1))/thisN))
+    allpower2<-c(allpower2,as.integer(100*length(which(mybit$p.r<.05))/thisN))
   }
 }
-aggdata$power<-allpower
+aggdata$power1<-allpower1
+aggdata$power2<-allpower2
 
+View(aggdata)
+
+#Check mean difference for selected and unselected
+mean.unselected<-(aggdata[1,4]*aggdata[1,7]+aggdata[1,5]*aggdata[1,8]+aggdata[1,6]*aggdata[1,9])/
+  sum(aggdata[1,4:6])
+mean.selected<-(aggdata[4,4]*aggdata[4,7]+aggdata[4,5]*aggdata[4,8]+aggdata[4,6]*aggdata[4,9])/
+  sum(aggdata[4,4:6])
 
