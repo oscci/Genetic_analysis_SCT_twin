@@ -2,6 +2,10 @@
 #Program by DVM Bishop, started 30/09/17
 #Updated 3/10/17 to include scatterplot of candidate genes
 #Updated 8/10/17 to include search based on PAR genes
+#Updated 15/11/17 to include additional genes from Dianne but to exclude those on X chromosome
+#Additional genes from Di from protein-protein interaction database
+# DLG4 (aka PSD95), NLGN3, PRIM1, PRIM2, UBB, DAP2 (aka SAPAP2, DLGAP2), NRXN1, BRK1
+# NLGN3 excluded because on X
 
 #Initial gene list by Dianne and Nuala selected on basis of association with language.
 #This is 149 genes.xlsx
@@ -13,17 +17,20 @@ readdir<-"~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio
 writedir<-readdir
 
 #search term in Scopus
-#TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR GRIN2B OR FOXP2 OR CNTNAP2 
-#OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR ATP13A4 OR ASPM OR androgen receptor OR NLGN4X OR NLGN4Y 
-#OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 OR DIP2A OR FMR1 OR BCL11A OR FOXP1
-#OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR SRPX2 OR GNPTG OR NAGPA OR RBFOX2 OR 
-#GNPTAB OR DRD4 OR ELP4 OR NOP9) 
-#AND KEY(synap* OR neurexin OR neuroligin OR autism OR language OR dyslexia OR reading OR SLI) 
-#AND KEY(human) AND NOT TITLE(review)
+# TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR 
+# GRIN2B OR FOXP2 OR CNTNAP2 OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR 
+# ATP13A4 OR ASPM OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 
+# OR BCL11A OR FOXP1 OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR GNPTG OR 
+# NAGPA OR RBFOX2 OR GNPTAB OR DRD4 OR ELP4 OR NOP9 OR DLG4 
+# OR PSD95 OR PRIM1 OR PRIM2 OR UBB OR DAP2 OR SAPAP2 OR DLGAP2 OR BRK1) 
+# AND KEY(synap* OR neurexin OR neuroligin OR autism OR language OR dyslexia 
+#         OR reading OR SLI) AND KEY(human) AND DOCTYPE(ar) 
+# 
+# 
+# On 15/11/2017 generated 1903 results.
 
-#On 29th Oct 2017 generated 1200 results.
 
-bibfile<-'gene_synapse_language.bib'
+bibfile<-'gene_synapse_language_20171115.bib'
 #bibfile<-'scopus-par.bib' #Use this version for PAR (pseudoautosomal region) genes
 
 require(bibliometrix)
@@ -42,12 +49,12 @@ nrecords<-nrow(mydf)
 # # Plot the network
 # net=networkPlot(NetMatrix, n = 20, Title = "Keyword Co-occurrences", type = "kamada", size=T)
 
-genelist<-c('ATP2C2', 'ROBO1', 'DCDC2', 'C2ORF3', 'MRPL19', 'AUTS2', 'BDNF', 'GRIN2B', 'FOXP2',
-            'CNTNAP2', 'KIAA0319', 'DYX1C1', 'CMIP', 'DRD2', 'APOE', 'ATP13A4', 'ASPM', 'ANDROGEN RECEPTOR', 
-            'AP4E1', 'ARID1B', 'S100B', 'CCDC136', 'FLNC', 'ERC1', 
-            'NRXN1', 'DIP2A', 'FMR1', 'BCL11A', 'FOXP1', 'SETBP1', 'DISC1', 'GRM3', 'GRIN2A', 'COMT',
-             'SRPX2', 'GNPTG', 'NAGPA', 'RBFOX2', 'GNPTAB', 'DRD4', 'ELP4', 'NOP9')
-#NB AR gene is problematic because AR is embedded in many words, so spelt out here
+genelist<-c("ATP2C2", "ROBO1", "DCDC2", "C2ORF3", "MRPL19", "AUTS2", "BDNF", "GRIN2B", "FOXP2", 
+            "CNTNAP2", "KIAA0319", "DYX1C1", "CMIP", "DRD2", "APOE", "ATP13A4", "ASPM", "AP4E1", 
+            "ARID1B", "S100B", "CCDC136", "FLNC", "ERC1", "NRXN1", "BCL11A", "FOXP1", "SETBP1", 
+            "DISC1", "GRM3", "GRIN2A", "COMT", "GNPTG", "NAGPA", "RBFOX2", "GNPTAB", "DRD4", 
+            "ELP4", "NOP9", "DLG4 ", "PSD95", "PRIM1", "PRIM2", "UBB", "DAP2", "SAPAP2", 
+            "DLGAP2", "BRK1")
 
 # Alternative genelist used with PAR genes
 # genelist<-c('AKAP17A', 'ASMT', 'ASMTL', 'ASMTL-AS1', 'CD99', 'CD99P1', 'CRLF2', 'CSF2RA', 'DHRSX', 'DHRSX-IT1', 
@@ -100,8 +107,24 @@ for (j in 1:nrecords){
     }
   }
 }
-  
-writebit<-paste0(writedir,"gene_synapse_summary.csv")
+
+#deal with alternative gene names
+w<-which(mydf$DAP2 >0)
+mydf$DLGAP2[w]<-1
+w<-which(mydf$SAPAP2 >0)
+mydf$DLGAP2[w]<-1
+
+w<-which(mydf$DLG4 >0)
+mydf$PSD95[w]<-1
+
+#put cols with duplicate names to zero so they won't get counted
+mydf$DAP2<-0
+mydf$SAPAP2<-0
+mydf$DLG4<-0
+
+
+
+writebit<-paste0(writedir,"gene_synapse_summary_20171115.csv")
 write.table(mytab, writebit, sep=",",row.names=FALSE) 
 
 mytab<-filter(mytab,papers>2) #only consider if at least 3 papers
@@ -114,8 +137,13 @@ mytab$p_lang[i]<-max(mytab$AUTIS[i],mytab$language[i],mytab$reading[i],mytab$dys
 mytab2<-filter(mytab,p_neuro>0)
 mytab2<-filter(mytab2,p_lang>0)
 ggplot(mytab2, aes(x= p_lang, y= p_neuro, label=gene))+
-  xlab('Proportion with language/reading')+
+  xlab('Proportion with ASD/language/reading')+
   ylab('Proportion with synapse/neurexin/neuroligin')+
   ggtitle('                Papers from SCOPUS search')+
   geom_point() +geom_text_repel(aes(label=gene),cex=3)
 
+#To inspect articles for a specific gene, you can proceed as follows (example with NRXN1)
+
+myNRXN1<-filter(mydf,NRXN1==1) #just those articles featuring this gene
+myNRXN1<-select(myNRXN1,AU,TI,AB) #focus on author/abstract only
+View(myNRXN1)
