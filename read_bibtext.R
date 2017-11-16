@@ -147,3 +147,94 @@ ggplot(mytab2, aes(x= p_lang, y= p_neuro, label=gene))+
 myNRXN1<-filter(mydf,NRXN1==1) #just those articles featuring this gene
 myNRXN1<-select(myNRXN1,AU,TI,AB) #focus on author/abstract only
 View(myNRXN1)
+write.csv(myNRXN1,'NRXN1papers.csv')
+
+#I then annotated these in xlsx. Can read back to categorise types of study
+#---------------------------------------------------------------------------
+# Plotting details of the papers
+mygene<-'NRXN1'
+myfilename<-paste0(mygene,'papers.csv')
+mygenedata<-read.csv(myfilename,stringsAsFactors=FALSE)
+#---------------------------------------------------------------------------
+#codes are: C: cell
+#           A: animal model
+#           S: case study
+#           M: group study of mutation/rare variant/CNV
+#           V: group study of common variant
+#           X: methods
+#           RC: review with functional/cellular focus
+#           RG: review with focus on phenotypes
+#           O: other
+#           Z: not relevant to this gene
+
+#convert rare categories to 'Other'
+w<-cbind(which(mygenedata$type=='R'),which(mygenedata$type=='RC'),
+         which(mygenedata$type=='RG'),which(mygenedata$type=='X'),
+         which(mygenedata$type=='O') ,which(mygenedata$type=='Z'))
+mygenedata$type[w]<-'Other'
+
+w<-which(mygenedata$type=='A')
+mygenedata$type[w]<-'Animal model'
+w<-which(mygenedata$type=='C')
+mygenedata$type[w]<-'Cells'
+w<-which(mygenedata$type=='S')
+mygenedata$type[w]<-'Case study'
+w<-which(mygenedata$type=='M')
+mygenedata$type[w]<-'Rare variants/CNV'
+w<-which(mygenedata$type=='V')
+mygenedata$type[w]<-'Common variants'
+
+mytab<-data.frame(table(mygenedata$type))
+
+colnames(mytab)[1]<-'Type'
+#reorder factor levels
+mytab$Type = factor(mytab$Type,
+                    levels(mytab$Type)[c(3,1,2,6,4,5)])
+#also need to reorder the rows of mytab
+mytab<-mytab[c(3,1,2,6,4,5),]
+# Add addition columns, needed for drawing with geom_rect.
+mytab$fraction = mytab$Freq / sum(mytab$Freq)
+#mytab = mytab[order(mytab$fraction), ]
+mytab$ymax = cumsum(mytab$Freq)
+mytab$ymin = c(0, head(mytab$ymax, n=-1))
+library(ggplot2)
+p2 = ggplot(mytab, aes(fill=Type, ymax=ymax, ymin=ymin, xmax=4, xmin=3)) +
+  geom_rect(colour="grey30") +
+  coord_polar(theta="y") +
+  xlim(c(0, 4)) +
+  theme_bw() +
+  theme(panel.grid=element_blank()) +
+  theme(axis.text=element_blank()) +
+  theme(axis.ticks=element_blank()) +
+  labs(title="NRXN1")
+p2
+
+#Now focus just on the studies of rare and common variants
+mygenepheno<-rbind(filter(mygenedata,type=='Rare variants/CNV'),filter(mygenedata,type=='Common variants'))
+
+mypheno=data.frame(c(sum(mygenepheno$lang.etc),sum(mygenepheno$asd),sum(mygenepheno$id),
+          sum(mygenepheno$sz),sum(mygenepheno$epilepsy),sum(mygenepheno$other)))
+colnames(mypheno)<-'Freq'
+mypheno$Phenotype<-as.factor(c('Language/speech','ASD','Intellectual disability','Schizophrenia','Epilepsy','Other'))
+mypheno$Phenotype = factor(mypheno$Phenotype ,
+                    levels(mypheno$Phenotype)[c(4,1,3,6,2,5)])
+
+mypheno$ymax = cumsum(mypheno$Freq)
+mypheno$ymin = c(0, head(mypheno$ymax, n=-1))
+p3 = ggplot(mypheno, aes(fill=Phenotype, ymax=ymax, ymin=ymin, xmax=4, xmin=3)) +
+  scale_fill_brewer(palette="RdBu")+
+  geom_rect(colour="grey30") +
+  coord_polar(theta="y") +
+  xlim(c(0, 4)) +
+  theme_bw() +
+  geom_text( aes(label = 'NRXN1',x=0, y=0), size=5, fontface="bold")+
+  theme(panel.grid=element_blank()) +
+  theme(axis.text=element_blank()) +
+  theme(axis.ticks=element_blank()) +
+  theme(axis.title=element_blank())+
+  theme(panel.grid=element_blank())+
+  theme(panel.border=element_blank())+
+  labs(title="")
+p3
+
+
