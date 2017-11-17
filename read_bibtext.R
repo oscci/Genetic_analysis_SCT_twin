@@ -17,43 +17,31 @@ readdir<-"~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio
 writedir<-readdir
 
 #search term in Scopus
-# TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR 
-# GRIN2B OR FOXP2 OR CNTNAP2 OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR 
-# ATP13A4 OR ASPM OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 
-# OR BCL11A OR FOXP1 OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR GNPTG OR 
-# NAGPA OR RBFOX2 OR GNPTAB OR DRD4 OR ELP4 OR NOP9 OR DLG4 
-# OR PSD95 OR PRIM1 OR PRIM2 OR UBB OR DAP2 OR SAPAP2 OR DLGAP2 OR BRK1) 
-# AND KEY(synap* OR neurexin OR neuroligin OR autism OR language OR dyslexia 
-#         OR reading OR SLI) AND KEY(human) AND DOCTYPE(ar) 
-# 
-# 
-# On 15/11/2017 generated 1903 results.
+#TITLE-ABS-KEY(ATP2C2 OR ROBO1 OR DCDC2 OR C2ORF3 OR MRPL19 OR AUTS2 OR BDNF OR GRIN2B 
+#OR FOXP2 OR CNTNAP2 OR KIAA0319 OR DYX1C1 OR CMIP OR DRD2 OR APOE OR ATP13A4 OR ASPM 
+#OR AP4E1 OR ARID1B OR S100B OR CCDC136 OR FLNC OR ERC1 OR NRXN1 OR BCL11A OR FOXP1 
+#OR SETBP1 OR DISC1 OR GRM3 OR GRIN2A OR COMT OR GNPTG OR NAGPA OR RBFOX2 OR GNPTAB 
+#OR DRD4 OR ELP4 OR NOP9 OR DLG4  OR PSD95 OR PRIM1 OR PRIM2 OR UBB OR DAP2 OR SAPAP2 
+#OR DLGAP2 OR BRK1) AND KEY(synap* OR neurexin OR neuroligin OR autism OR language 
+#OR speech OR dyslexia OR reading OR SLI) AND KEY(human) AND DOCTYPE(ar) 
 
+# On 17/11/2017 generated 1975 results.
 
-bibfile<-'gene_synapse_language_20171115.bib'
-#bibfile<-'scopus-par.bib' #Use this version for PAR (pseudoautosomal region) genes
-
-require(bibliometrix)
-#https://cran.r-project.org/web/packages/bibliometrix/vignettes/bibliometrix-vignette.html
 require(tidyverse)
 require(ggrepel) #avoids overlap in scatterplot labels
-mybib<-paste0(readdir,bibfile)
-D <- readFiles(mybib)
 
-mydf <- convert2df(D, dbsource = "scopus", format = "bibtex")
-mydf<-select(mydf,AU,TI,SO,DE,ID,AB,PY) #retain these 7 columns from mydf
-#the ID field has the Scopus keywords and DE has author's keywords
+# Modified 17th Nov 2017 to read in .csv file rather than .bib as friendier format
+myreadin<-paste0(readdir,'scopus_20171117.csv')
+mydf<-read_csv(myreadin)
+colnames(mydf)[7:8]<-c('Au.key','Scopus.key')
+mydf<-dplyr::select(mydf,Authors,Title,Year,DOI, Abstract,Au.key,Scopus.key) #retain these columns from mydf
+
 nrecords<-nrow(mydf)
-# NetMatrix <- biblioNetwork(mydf, analysis = "co-occurrences", network = "keywords", sep = ";")
-# 
-# # Plot the network
-# net=networkPlot(NetMatrix, n = 20, Title = "Keyword Co-occurrences", type = "kamada", size=T)
-
 genelist<-c("ATP2C2", "ROBO1", "DCDC2", "C2ORF3", "MRPL19", "AUTS2", "BDNF", "GRIN2B", "FOXP2", 
             "CNTNAP2", "KIAA0319", "DYX1C1", "CMIP", "DRD2", "APOE", "ATP13A4", "ASPM", "AP4E1", 
             "ARID1B", "S100B", "CCDC136", "FLNC", "ERC1", "NRXN1", "BCL11A", "FOXP1", "SETBP1", 
             "DISC1", "GRM3", "GRIN2A", "COMT", "GNPTG", "NAGPA", "RBFOX2", "GNPTAB", "DRD4", 
-            "ELP4", "NOP9", "DLG4 ", "PSD95", "PRIM1", "PRIM2", "UBB", "DAP2", "SAPAP2", 
+            "ELP4", "NOP9", "DLG4", "PSD95", "PRIM1", "PRIM2", "UBB", "DAP2", "SAPAP2", 
             "DLGAP2", "BRK1")
 
 # Alternative genelist used with PAR genes
@@ -62,7 +50,7 @@ genelist<-c("ATP2C2", "ROBO1", "DCDC2", "C2ORF3", "MRPL19", "AUTS2", "BDNF", "GR
 #             'PPP2R3B', 'P2RY8', 'SHOX', 'SLC25A6', 'XG', 'ZBED1', 'AMD1P2', 'DDX11L16', 'DPH3P2', 'IL9R', 'SPRY3',
 #             'ELOCP24', 'TRPC6P', 'VAMP7', 'WASH6P', 'WASIR1')
 
-keywordlist<-c('SYNAP','NEUREXIN','NEUROLIGIN','AUTIS','LANGUAGE','READING','SPEECH','DYSLEXIA','SPECIFIC LANGUAGE IMPAIRMENT')
+keywordlist<-c('SYNAP','NEUREXIN','NEUROLIGIN','AUTIS','LANGUAGE','READING','SPEECH','DYSLEX','SPECIFIC LANGUAGE IMPAIRMENT')
 
 ngene<-length(genelist)
 nkey<-length(keywordlist)
@@ -73,7 +61,7 @@ colnames(addbit)<-genelist
 #colnames(addbit)[18]<-'AR' #shorten for column headings, though use full term for search
 addbit2<-matrix(data=0,ncol=nkey,nrow=nrecords)
 colnames(addbit2)<-keywordlist
-colnames(addbit2)[9]<-'SLI'#shorten for column headings, though use full term for search
+colnames(addbit2)[ncol(addbit2)]<-'SLI'#shorten last name column headings, though use full term for search
 mydf<-cbind(mydf,addbit,addbit2)
 
 #initialise table to hold summary results
@@ -83,7 +71,7 @@ for (i in 1:ngene){
   mytab[i,1]<-genelist[i]
 }
 colnames(mytab)[2:(nkey+1)]<-keywordlist
-colnames(mytab)[10]<-'SLI' #shortened name
+colnames(mytab)[(nkey+1)]<-'SLI' #shortened name
 colnames(mytab)[1]<-'gene'
 colnames(mytab)[nkey+2]<-'papers'
 
@@ -91,7 +79,7 @@ colnames(mytab)[nkey+2]<-'papers'
 #search each row for gene and, if found, for keywords
 #NB for author keywords field DE, for Scopus keywords, field ID
 for (j in 1:nrecords){
-  mytext<-c(mydf$TI[j],mydf$AB[j],mydf$ID[j],mydf$DE[j]) #all relevant text from title/abs/keywords for this record
+  mytext<-c(mydf$Title[j],mydf$Abstract[j],mydf$Au.key[j],mydf$Scopus.key[j]) #all relevant text from title/abs/keywords for this record
   for (i in 1:ngene){
     g<-genelist[i]
     if(length(grep(g,mytext)) >0)
@@ -100,7 +88,7 @@ for (j in 1:nrecords){
       mydf[j,(i+7)]<-mydf[j,(i+7)]+1 #mark record in main data frame to show this gene mentioned
       for (k in 1:nkey){
         thiskey<-keywordlist[k]
-        if(length(grep(thiskey,mytext)) >0)
+        if(length(grep(thiskey,mytext,ignore.case=TRUE)) >0)
         {mytab[i,(k+1)]<-mytab[i,(k+1)]+1
         mydf[j,(k+7+ngene)]<-mydf[j,(k+7+ngene)]+1}
       }
@@ -124,7 +112,7 @@ mydf$DLG4<-0
 
 
 
-writebit<-paste0(writedir,"gene_synapse_summary_20171115.csv")
+writebit<-paste0(writedir,"gene_synapse_summary_20171117.csv")
 write.table(mytab, writebit, sep=",",row.names=FALSE) 
 
 mytab<-filter(mytab,papers>2) #only consider if at least 3 papers
@@ -142,18 +130,31 @@ ggplot(mytab2, aes(x= p_lang, y= p_neuro, label=gene))+
   ggtitle('                Papers from SCOPUS search')+
   geom_point() +geom_text_repel(aes(label=gene),cex=3)
 
+#---------------------------------------------------------------------------------
 #To inspect articles for a specific gene, you can proceed as follows (example with NRXN1)
+targetlist<-c('NRXN1','DLGAP2','GRIN2B','CNTNAP2','AP4E1','FOXP2','BCL11A','ATP2C2')
+ntargets<-length(targetlist)
+shortdf<-select(mydf,DOI,Authors,Title,Abstract,SYNAP,AUTIS,LANGUAGE,READING,SPEECH,DYSLEX,SLI) #focus on author/abstract only
+#repurpose the SYNAP column to hold user-entered code
+shortdf$SYNAP<-0
+colnames(shortdf)[5]<-'Code'
+for (i in 1:ntargets)
+  {myname<-targetlist[i]
+  mycol<-which(colnames(mydf)==myname)
+  w<-which(mydf[,mycol]==1)
+  myset<-shortdf[w,]
+  genefile<-paste0(readdir,targetlist[i],'_papers.csv')
+  write.csv(myset,genefile,,row.names=FALSE)
+}
 
-myNRXN1<-filter(mydf,NRXN1==1) #just those articles featuring this gene
-myNRXN1<-select(myNRXN1,AU,TI,AB) #focus on author/abstract only
-View(myNRXN1)
-write.csv(myNRXN1,'NRXN1papers.csv')
+
+#---------------------------------------------------------------------------------
 
 #I then annotated these in xlsx. Can read back to categorise types of study
 #---------------------------------------------------------------------------
 # Plotting details of the papers
 mygene<-'NRXN1'
-myfilename<-paste0(mygene,'papers.csv')
+myfilename<-paste0(mygene,'papers_edited.csv')
 mygenedata<-read.csv(myfilename,stringsAsFactors=FALSE)
 #---------------------------------------------------------------------------
 #codes are: C: cell
@@ -206,6 +207,8 @@ p2 = ggplot(mytab, aes(fill=Type, ymax=ymax, ymin=ymin, xmax=4, xmin=3)) +
   theme(panel.grid=element_blank()) +
   theme(axis.text=element_blank()) +
   theme(axis.ticks=element_blank()) +
+  theme(panel.grid=element_blank())+
+  theme(panel.border=element_blank())+
   labs(title="NRXN1")
 p2
 
