@@ -1,0 +1,60 @@
+---
+title: "Coding_agreement_Di_Do"
+author: "dorothy"
+date: "29/11/2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+## Coding of papers on CNTNAP2
+
+ codes are: *C: cell
+           *A: animal model
+          *S: case study
+            *M: group study of mutation/rare variant/CNV
+           *V: group study of common variant
+          * O: other (includes reviews/not relevant/etc)
+           
+Papers on CNTNAP2 from Scopus search were coded from information in Abstract.
+
+Directory is "~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio_data/gene_specific_csv/
+
+File is 'CNTNAP2_papers_done.csv': has columns for DB and DN
+
+
+```{r agree,echo = FALSE}
+readdir<-"~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/biblio_data/gene_specific_csv/"
+genefile<-paste0(readdir,'CNTNAP2_papers_done.csv')
+mygenedata<-read.csv(genefile)
+myagree<-table(mygenedata$Code,mygenedata$Di.code)
+#Agreement based on all codes
+perc_agree<-sum(diag(myagree))/sum(myagree)
+kable(myagree,caption='Di rating codes along the top, Dorothy rating codes in rows')
+paste0('Percentage agreement is ',round(100*perc_agree),'%')
+
+#Recode into just V, M and other
+w<-c(which(mygenedata$Di.code=='A'),which(mygenedata$Di.code=='C'),
+     which(mygenedata$Di.code=='S'))
+mygenedata$Di.shortcode<-mygenedata$Di.code
+mygenedata$Di.shortcode[w]<-'O'
+w1<-c(which(mygenedata$Code=='A'),which(mygenedata$Code=='C'),
+     which(mygenedata$Code=='S'))
+mygenedata$shortcode<-mygenedata$Code
+mygenedata$shortcode[w1]<-'O'
+myagreeshort<-table(mygenedata$shortcode,mygenedata$Di.shortcode)
+myagreeshort<-myagreeshort[c(3,4,6),c(3,4,6)]
+perc_agreeshort<-sum(diag(myagreeshort))/sum(myagreeshort)
+
+#agreement for shortened codes
+kable(myagreeshort,caption='3 category only: Di rating codes along the top, Dorothy rating codes in rows')
+perc_agreeshort<-sum(diag(myagreeshort))/sum(myagreeshort)
+paste0('Percentage agreement is ',round(100*perc_agreeshort),'%')
+```
+
+
