@@ -13,26 +13,30 @@ require(doBy)
 require(tidyverse)
 require(MASS)
 require(stats)
+
 options(scipen = 999) #turn off scientific notation
-nsnp<-20
+nrun <- 1 #N runs to simulate
+nsnp<-24 #N SNPs to simulate
 snpnames<-paste0('snp', 1:nsnp)
 maf<-runif(nsnp,.25,.5) #minor allele freq set to value from .25 to .5
-ncases<-120
+ncases<-10000
 mydata<-data.frame(matrix(nrow=ncases,ncol=(3+sum(nsnp))))
-#We will simulate data for 3 phenotypes and 22 SNPs with cols also for Karyotype and Ethnicity
+#We will simulate large datasets (ncases) for 3 phenotypes and 24 SNPs 
+#We can then sample from the saved data when running simulations.
+
+#In each dataset we have one phenotype with 3 correlated indicators (last 3 cols)
+#Dataset name indicates whether any corelation between SNPs, and whether any phenogeno correl
+#DatasetRand_N: No correlation between SNPs, no assoc with phenotype
+#Dataset3Block_N: SNPs in blocks of 8 with correlation within block dependent on distance
+#DatasetRand_2GP_5: No correlation between SNPs, 2 SNPs correl with phenotype = .5
+datafilename <- c('DatasetRand_N.csv','Dataset3Block_N.csv','DatasetRand_2GP_5')
+thisfile<-1 #Indicates which type of correlation structure in datafile
+mydatafile<- datafilename[thisfile]
+
 #SNP values are 0, 1 or 2.
 colnames(mydata)[(nsnp+1):(nsnp+3)]<-c('NwdRepPheno','LangPheno','NeurodevPheno')
 
-#start by simulating Karyotype: assume 40 of each (irrelevant to analysis at present)  
-# mydata$Karyotype <- as.factor(c(rep(1, 40), rep(2, 40), rep(3, 40)))
-# mydata$Ethnicity <- as.factor(c(rep(1, 100), rep(2, 10), rep(3, 10)))
-# levels(mydata$Karyotype) <- c('XXX', 'XXY', 'XYY')
-# levels(mydata$Ethnicity) <-
-#   c('White', 'Asian', 'Black')#assume 100,10,10
 #-----------------------------------------------------------------
-nrun <- 100
-#prun=999
-for (myn in 1:nrun){
 #Simulate the 3 phenotypes as correlated zscores, correlation is mycorr
 mymean<-rep(0,3)
 mycorr<-.75
@@ -51,6 +55,7 @@ endcol<-nsnp
   mycorr<-0 #default is uncorrelated
   mycov<-matrix(mycorr,nrow=h,ncol=h)
   diag(mycov)<-rep(1,h)
+  if(thisfile>1){
   for (i in 1:h){
     for (j in 1:h){
       k<- abs(i-j)
@@ -60,6 +65,7 @@ endcol<-nsnp
       
       if(k==0){mycov[i,j]<-1}
     }
+  }
   }
   mydata[,startcol:endcol]=mvrnorm(n = ncases, mymean, mycov)
   colnames(mydata)[startcol:endcol]<-snpnames
@@ -87,9 +93,12 @@ for (i in 1:nsnp){
 }
 write.table(mydata, "dummydata.txt", sep=",",row.names=FALSE) 
 
-#Now try using ASCSCA to analyse
+prun<-vector() #initialise empty vector to hold p-values
+for (myn in 1:nrun){
+  #need to read in data for required sample size
+#use ASCSCA to analyse
 
-library(ASGSCA)
+# library(ASGSCA)
 ObservedVar=colnames(mydata)[1:(nsnp+3)]
 LatentVar=c("CNTNAP2","Neurodev")
 
@@ -101,9 +110,9 @@ W0[1:nsnp,1]=W0[(nsnp+1):(nsnp+3),2]=1
 B0=matrix(rep(0,2*2),nrow=2,ncol=2, dimnames=list(LatentVar,LatentVar))
 B0[1,2]=1
 
-# GSCA(mydata,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=FALSE,path=NULL,nperm=1000)
+ GSCA(mydata,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=FALSE,path=NULL,nperm=1000)
 
-myfit<-GSCA(mydata,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=TRUE,path=NULL,nperm=1000)
+#myfit<-GSCA(mydata,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=TRUE,path=NULL,nperm=1000)
 
 prun<-c(prun,myfit$pvalues[1,2])
 }
