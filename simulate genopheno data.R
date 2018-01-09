@@ -36,7 +36,7 @@ mydata<-data.frame(matrix(nrow=ncases,ncol=(3+sum(nsnp))))
 # User specifies how many SNPs have effect on phenotype and how big an effect here
 # These values are ignored if thisfile is 1 or 3 (no effect)
 nsnpeff<-3
-gpcov<-.3
+gpcov<-.4
 n2sim<-3 #N phenotypes
 
 #----------------------------------------------------------------------------
@@ -176,3 +176,5 @@ runtype<-'Uncorrelated SNPS'
 if (thisfile>2){runtype<-'SNPs in 3 correlated blocks (see myr for correlations)'}
 print(runtype)
 print(paste0('Proportion of runs with p < .05 = ',length(w),' out of ',nrun))
+
+#A mockup of the SEM paths can be produced with GCSAdiagram.R
