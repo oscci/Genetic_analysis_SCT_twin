@@ -1,5 +1,11 @@
 #http://rich-iannone.github.io/DiagrammeR/graphviz_and_mermaid.html
 # DVM Bishop 27th October 2017
+
+# From sessionInfo()
+# R version 3.4.1 (2017-06-30)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS Sierra 10.12.6
+
 # Based on previous versions done by Paul Thompson/Alex Wilson
 # This one does flowchart for genetics study with both SCT and twins
 
@@ -35,57 +41,44 @@ if(os1=="windows"){
 #Sorry had to add this bit as the link didn't work for me. i.e. manual down load and redirect link.
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-main.data <- read.csv(paste0(dir,"SCTData_DATA_2017-10-27_1035.csv"))
-
+main.data <- read.csv(paste0(dir,"SCTData_DATA_2017-12-13_1155.csv"))
+main.data<-filter(main.data,trisomy<9) #remove one isochromosome case
 names(main.data)[1]<-"record_id"
 
-#Referral source
-nhscases<-c(70, 212, 213, 214, 215, 218, 221, 222, 223, 225, 229, 231,
-            233, 234, 237, 239, 240, 241, 247, 251, 252, 254, 255, 257,
-            258, 264, 265, 268, 270, 273, 274, 276, 283, 285, 297, 304,
-            306, 307, 310, 318, 319, 321, 322, 323, 327, 328, 329, 331,
-            334, 335, 336, 337, 340, 342, 346, 348, 351, 352, 355, 357,
-            358, 360, 362, 365, 367, 368, 369, 370)
-nhsset<-filter(main.data,record_id %in% nhscases)
-othset<-setdiff(main.data,nhsset)
-
-y<-table(nhsset$pre_postnatal_diag)
-z<-table(othset$pre_postnatal_diag)
-y1=y[1]
-y2=y[2]
-z1=z[1]
-z2=z[2]
+#Referral source - revised for genetics paper: NHS referral not relevant here
+# nhscases<-c(70, 212, 213, 214, 215, 218, 221, 222, 223, 225, 229, 231,
+#             233, 234, 237, 239, 240, 241, 247, 251, 252, 254, 255, 257,
+#             258, 264, 265, 268, 270, 273, 274, 276, 283, 285, 297, 304,
+#             306, 307, 310, 318, 319, 321, 322, 323, 327, 328, 329, 331,
+#             334, 335, 336, 337, 340, 342, 346, 348, 351, 352, 355, 357,
+#             358, 360, 362, 365, 367, 368, 369, 370)
+# nhsset<-filter(main.data,record_id %in% nhscases)
+# othset<-setdiff(main.data,nhsset)
 
 
-
-for (i in 1:1){ #change to 2 to see rates by reason for testing
-  #Count for diagnosis pre or postnatal
-  prenatals<-subset(main.data,pre_postnatal_diag==0)
-  postnatals<-subset(main.data,pre_postnatal_diag==1)
-  label1<-'Prenatal'
-  label2<-'Postnatal'
-  label3<-'When SCT identified'
-  if (i==2){
-    ascbias<-c(which(main.data$why_tested==2),which(main.data$why_tested==3))
-    postnatals<-main.data[ascbias,] #these are no longer pre-post but divided
-    #according to whether tested because of behav/neuro concerns
-    prenatals<-main.data[-ascbias,] #tested bcs other med concerns
+    ascbias<-which(main.data$why_tested==3)
+    group2<-main.data[ascbias,] #these are divided
+    #according to whether tested because of neurodev concerns
+    group1<-main.data[-ascbias,] #tested bcs other med concerns
     label1<-'Medical'
-    label2<-'Neurodev.'
-    label3<-'Reason for testing'
-  }
-  n.A<-dim(postnatals)[1]
-  n.B<-dim(prenatals)[1]
+
+ 
+  n.A<-dim(group2)[1]
+  n.B<-dim(group1)[1]
   
-  no_dna.B<-length(which(postnatals$dna_ok==0))
-  no_dna.A<-length(which(prenatals$dna_ok==0))
+  y1=50;y2=34;y3=58
+  y1<-length(which(group1$pre_postnatal_diag==0))
+  y2<-length(which(group1$pre_postnatal_diag==1))
+  y3<-nrow(group2)
+  no_dna.B<-length(which(group2$dna_ok==0))
+  no_dna.A<-length(which(group1$dna_ok==0))
   #subset by karyotype
-  xxx2<-subset(postnatals,trisomy==1)
-  xxy2<-subset(postnatals,trisomy==2)
-  xyy2<-subset(postnatals,trisomy==3)
-  xxx1<-subset(prenatals,trisomy==1)
-  xxy1<-subset(prenatals,trisomy==2)
-  xyy1<-subset(prenatals,trisomy==3)
+  xxx2<-subset(group2,trisomy==1)
+  xxy2<-subset(group2,trisomy==2)
+  xyy2<-subset(group2,trisomy==3)
+  xxx1<-subset(group1,trisomy==1)
+  xxy1<-subset(group1,trisomy==2)
+  xyy1<-subset(group1,trisomy==3)
   
   n.C<-dim(xxx1)[1]
   n.D<-dim(xxy1)[1]
@@ -94,17 +87,7 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
   n.G<-dim(xxy2)[1]
   n.H<-dim(xyy2)[1]
   
-  
-  
-  #now check DNA status
-  n.I=length(which(xxx1$dna_ok>0))
-  n.J=length(which(xxy1$dna_ok>0))
-  n.K=length(which(xyy1$dna_ok>0))
-  n.L=length(which(xxx2$dna_ok>0))
-  n.M=length(which(xxy2$dna_ok>0))
-  n.N=length(which(xyy2$dna_ok>0))
-  
-  
+
   #now create flow chart ; TB denotes top to bottom
   #Need to add labels along the side: top row 'Reason for testing or Time of testing'
   #Then trisomy, then with DAWBA data
@@ -145,23 +128,23 @@ for (i in 1:1){ #change to 2 to see rates by reason for testing
               Y -> Z [alpha=0,color='white']
               }
               
-              [1]: paste0(label3, ':\\n ',' Recruited from')
-              [2]: paste0(label1,':\\n', 'NHS: N = ',y1,'\\n', 'Other: N = ',y2)
-              [3]: paste0(label2,':\\n', 'NHS: N = ',z1,'\\n' ,'Other: N = ',z2)
+              [1]: paste0('Reason for testing\\nTime of diagnosis')
+              [2]: paste0('Medical\\n', 'Prenatal: N = ',y1,'\\n', 'Postnatal: N = ',y2)
+              [3]: paste0('Neurodevelopmental\\ndisorder\\nPostnatal: N = ',y3 )
               [4]: paste0('N = ',no_dna.A)
               [5]: paste0('N = ',no_dna.B)
-              [6]: paste0('XXX','\\n', 'N = ',n.I)
-              [7]: paste0('XXY',' \\n', 'N = ',n.J)
-              [8]: paste0('XYY',' \\n', 'N = ',n.K)
-              [9]: paste0('XXX',' \\n', 'N = ',n.L)
-              [10]: paste0('XXY',' \\n', 'N = ',n.M)
-              [11]: paste0('XYY',' \\n', 'N = ',n.N)
+              [6]: paste0('XXX','\\n', 'N = ',n.C)
+              [7]: paste0('XXY',' \\n', 'N = ',n.D)
+              [8]: paste0('XYY',' \\n', 'N = ',n.E)
+              [9]: paste0('XXX',' \\n', 'N = ',n.F)
+              [10]: paste0('XXY',' \\n', 'N = ',n.G)
+              [11]: paste0('XYY',' \\n', 'N = ',n.H)
        
               "))
   
   
-}
-#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow.png")
+
+#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow_180115.png")
 
 #Now do plot for twin data
 
@@ -171,23 +154,31 @@ if(os1=="windows"){
 
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-10-28_0620.csv"))
+twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-12-13_1033.csv"))
 twin.data$zygo2<-twin.data$zygosity
 fam_ids<-unique(twin.data$fam_id)
 w<-which(twin.data$zygo2==3)
-twin.data$zygo2[w]<-2
+twin.data$zygo2[w]<-2 #zygo2 is zygosity just as MZ and DZ
+#now categorise according to whether one or both twins has parental concern
+#relevant variable is splang_conc, coded 1-3 for varying degrees of lang severity and 4 for reading
+#any values 1-4 are regarded as concern
+twin.data$parconcern<-twin.data$splang_conc
+w<-which(twin.data$splang_conc>0)
+twin.data$parconcern[w]<-1
+#twin.data$parent_rep_12 captures whether 0, 1 or 2 children in pair raise concern
 for (i in 1:length(fam_ids)){
-twin.data$parent_rep_pair[which(twin.data$fam_id==fam_ids[i])]<-sum(twin.data$parental_report_dld[which(twin.data$fam_id==fam_ids[i])])
+twin.data$parent_rep_12[which(twin.data$fam_id==fam_ids[i])]<-sum(twin.data$parconcern[which(twin.data$fam_id==fam_ids[i])])
 }
-
-w<-which(twin.data$parent_rep_pair>0)
+twin.data$parent_rep_pair<-twin.data$parent_rep_12
+#now recode so as just to show whether any concern in either twin
+w<-which(twin.data$parent_rep_12>0)
 twin.data$parent_rep_pair[w]<-1
-excl1<-nrow(filter(twin.data,parent_rep_pair==0,zygosity_di==9,randomtwininclude==1))
-excl2<-nrow(filter(twin.data,parent_rep_pair==1,zygosity_di==9,randomtwininclude==1))
+excl1<-nrow(filter(twin.data,parent_rep_pair==0,zygosity_di==9))
+excl2<-nrow(filter(twin.data,parent_rep_pair==1,zygosity_di==9))
 noconcern<-length(which(twin.data$parent_rep_pair==0))/2 #i.e. both twins have zero concern
 concern<-length(which(twin.data$parent_rep_pair>0))/2 #i.e. one or both twins have concern
 
-mytwins<-filter(twin.data,randomtwininclude==1,zygosity_di<9)#one per pair, exclude those with no DNA
+mytwins<-filter(twin.data,zygosity_di<9)#both members per pair, exclude those with no DNA
 
 mygirls<-filter(mytwins,female==1,zygo2<9)
 myt<-table(mygirls$zygo2,mygirls$parent_rep_pair)
@@ -216,7 +207,7 @@ print(grViz("
             node [shape = plaintext, fontname = Helvetica]
             X[label='@@1']
              Y[label= 'Exclude: No DNA']
-            Z[label= 'One twin per pair at random']
+            Z[label= 'Total N twin children']
             
             
             node [shape=square]
@@ -250,9 +241,14 @@ print(grViz("
             [5]: paste0('DZ:\\nN = ',n.DZn.b,' boys\\n',n.DZn.g,' girls')
             [6]: paste0('MZ:\\nN = ',n.MZc.b,' boys\\n',n.MZc.g,' girls')
             [7]:  paste0('DZ:\\nN = ',n.DZc.b,' boys\\n',n.DZc.g,' girls')
-            [8]: paste0('N = ',excl1)
-            [9]: paste0('N = ',excl2)
+            [8]: paste0('N children = ',excl1)
+            [9]: paste0('N children = ',excl2)
             
             "))
 
-#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("twins_flow.png")
+#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("twins_flow_180115.png")
+
+#Save information on random twin inclusion for those with zygostiy data
+dibt<-select(twin.data,record_id,zygo2,randomtwininclude)
+dibt<-filter(dibt,zygo2<9)
+write_csv(dibt,'twinatrandom.csv')
