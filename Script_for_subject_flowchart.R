@@ -36,12 +36,12 @@ get_os <- function(){
 os1=get_os()
 dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project SCT analysis/Data from redcap/"
 if(os1=="windows"){
-  dir<-"C:\\Users\\wilsona\\Dropbox\\project SCT analysis\\Data from redcap\\"}
+  dir<-"C:\\Users\\pthompson\\Dropbox\\project SCT analysis\\Data from redcap\\"}
 
 #Sorry had to add this bit as the link didn't work for me. i.e. manual down load and redirect link.
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-main.data <- read.csv(paste0(dir,"SCTData_DATA_2017-12-13_1155.csv"))
+main.data <- read.csv(paste0(dir,"SCTData_DATA_2018-01-19_1008.csv"))
 main.data<-filter(main.data,trisomy<9) #remove one isochromosome case
 names(main.data)[1]<-"record_id"
 
@@ -73,12 +73,12 @@ names(main.data)[1]<-"record_id"
   no_dna.B<-length(which(group2$dna_ok==0))
   no_dna.A<-length(which(group1$dna_ok==0))
   #subset by karyotype
-  xxx2<-subset(group2,trisomy==1)
-  xxy2<-subset(group2,trisomy==2)
-  xyy2<-subset(group2,trisomy==3)
-  xxx1<-subset(group1,trisomy==1)
-  xxy1<-subset(group1,trisomy==2)
-  xyy1<-subset(group1,trisomy==3)
+  xxx2<-subset(group2,trisomy==1 & dna_ok==1)
+  xxy2<-subset(group2,trisomy==2 & dna_ok==1)
+  xyy2<-subset(group2,trisomy==3 & dna_ok==1)
+  xxx1<-subset(group1,trisomy==1 & dna_ok==1)
+  xxy1<-subset(group1,trisomy==2 & dna_ok==1)
+  xyy1<-subset(group1,trisomy==3 & dna_ok==1)
   
   n.C<-dim(xxx1)[1]
   n.D<-dim(xxy1)[1]
@@ -150,11 +150,11 @@ names(main.data)[1]<-"record_id"
 
 dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/Data/"
 if(os1=="windows"){
-  dir<-"C:\\Users\\wilsona\\Dropbox\\project twin kids\\Project_files\\Data\\"}
+  dir<-"C:\\Users\\pthompson\\Dropbox\\project twin kids\\Project_files\\Data\\"}
 
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2017-12-13_1033.csv"))
+twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2018-01-19_1007.csv"))
 twin.data$zygo2<-twin.data$zygosity
 fam_ids<-unique(twin.data$fam_id)
 w<-which(twin.data$zygo2==3)
@@ -247,6 +247,12 @@ print(grViz("
             "))
 
 #flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("twins_flow_180115.png")
+
+#Counts of ASD, ID, and hearing.
+library(gmodels)
+
+CrossTable(twin.data$neurodev_diagnosis,twin.data$lang_probs,prop.r = F,prop.c = F,prop.t = F,chisq = F,expected = F,prop.chisq = F)
+
 
 #Save information on random twin inclusion for those with zygostiy data
 dibt<-select(twin.data,record_id,zygo2,randomtwininclude)
