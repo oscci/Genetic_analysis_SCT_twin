@@ -1,5 +1,6 @@
 #http://rich-iannone.github.io/DiagrammeR/graphviz_and_mermaid.html
 # DVM Bishop 27th October 2017
+# modified by Paul Thompson on 19th Jan 2018
 
 # From sessionInfo()
 # R version 3.4.1 (2017-06-30)
