@@ -130,6 +130,5 @@ my_graph<-grViz("
       }
       ")
 
-#NB problems with exporting diagram from GraphViz; currently using screenshot
 
 my_graph %>%export_svg %>% charToRaw %>% rsvg_png("Fig4_path_diag.png")
