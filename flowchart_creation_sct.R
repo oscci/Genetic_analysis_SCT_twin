@@ -42,7 +42,7 @@ if(os1=="windows"){
 #Sorry had to add this bit as the link didn't work for me. i.e. manual down load and redirect link.
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-main.data <- read.csv(paste0(dir,"SCTData_DATA_2018-01-19_1008.csv"))
+main.data <- read.csv(paste0(dir,"SCTData_DATA_2018-01-22_1351.csv"))
 main.data<-filter(main.data,trisomy<9) #remove one isochromosome case
 names(main.data)[1]<-"record_id"
 
@@ -56,6 +56,10 @@ names(main.data)[1]<-"record_id"
 # nhsset<-filter(main.data,record_id %in% nhscases)
 # othset<-setdiff(main.data,nhsset)
 
+#for ease of computation, record dna_ok values of 9 to zero
+#(for 9 Di did not have a sample ;for 0 there was sample but poor quality)
+w<-which(main.data$dna_ok==9)
+main.data$dna_ok[w]<-0
 
     ascbias<-which(main.data$why_tested==3)
     group2<-main.data[ascbias,] #these are divided
@@ -93,7 +97,7 @@ names(main.data)[1]<-"record_id"
   #Need to add labels along the side: top row 'Reason for testing or Time of testing'
   #Then trisomy, then with DAWBA data
   
-  print(grViz("
+  myflow1<-grViz("
               digraph a_nice_graph {
               
               # node definitions with substituted label text
@@ -141,21 +145,23 @@ names(main.data)[1]<-"record_id"
               [10]: paste0('XXY',' \\n', 'N = ',n.G)
               [11]: paste0('XYY',' \\n', 'N = ',n.H)
        
-              "))
+              ")
   
   
 
-#flow %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow_180115.png")
+myflow1 %>% export_svg %>% charToRaw %>% rsvg %>% png::writePNG("SCT_flow_20180121.png")
 
 #Now do plot for twin data
 
-dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project twin kids/Project_files/Data/"
+dir<-"/Users/dorothybishop/Dropbox/ERCadvanced/project SCT analysis/Data from redcap/"
 if(os1=="windows"){
   dir<-"C:\\Users\\pthompson\\Dropbox\\project twin kids\\Project_files\\Data\\"}
 
 #dir.PT<-"c:/Users/pthompson/Desktop/"
 
-twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2018-01-19_1007.csv"))
+twin.data <- read.csv(paste0(dir,"TwinsData_DATA_2018-01-22_0744.csv"))
+w<-which(twin.data$dna_ok==9)
+twin.data$dna_ok[w]<-0
 twin.data$zygo2<-twin.data$zygosity
 fam_ids<-unique(twin.data$fam_id)
 w<-which(twin.data$zygo2==3)
@@ -174,14 +180,14 @@ twin.data$parent_rep_pair<-twin.data$parent_rep_12
 #now recode so as just to show whether any concern in either twin
 w<-which(twin.data$parent_rep_12>0)
 twin.data$parent_rep_pair[w]<-1
-excl1<-nrow(filter(twin.data,parent_rep_pair==0,zygosity_di==9))
-excl2<-nrow(filter(twin.data,parent_rep_pair==1,zygosity_di==9))
+excl1<-nrow(filter(twin.data,parent_rep_pair==0,dna_ok==0))
+excl2<-nrow(filter(twin.data,parent_rep_pair==1,dna_ok==0))
 noconcern<-length(which(twin.data$parent_rep_pair==0))/2 #i.e. both twins have zero concern
 concern<-length(which(twin.data$parent_rep_pair>0))/2 #i.e. one or both twins have concern
 
-mytwins<-filter(twin.data,zygosity_di<9)#both members per pair, exclude those with no DNA
+mytwins<-filter(twin.data,dna_ok>0)#both members per pair, exclude those with no DNA
 
-mygirls<-filter(mytwins,female==1,zygo2<9)
+mygirls<-filter(mytwins,female==1)
 myt<-table(mygirls$zygo2,mygirls$parent_rep_pair)
 colnames(myt)<-c('none','concern')
 rownames(myt)<-c('MZ','DZ')
@@ -189,7 +195,7 @@ n.MZn.g<-myt[1,1]
 n.DZn.g<-myt[2,1]
 n.MZc.g<-myt[1,2]
 n.DZc.g<-myt[2,2]
-myboys<-filter(mytwins,female==0,zygo2<9)
+myboys<-filter(mytwins,female==0)
 myt1<-table(myboys$zygo2,myboys$parent_rep_pair)
 colnames(myt1)<-c('none','concern')
 rownames(myt1)<-c('MZ','DZ')
