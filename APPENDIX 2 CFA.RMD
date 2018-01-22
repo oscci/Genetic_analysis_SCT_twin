@@ -5,7 +5,7 @@ date: "22 January 2018"
 output: word_document
 ---
 
-```{r setup, include=FALSE,warning=FALSE,message=FALSE}
+```{r setup, include=TRUE,warning=FALSE,message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 #install.packages(c("data.table","scales","lavaan"))
@@ -21,7 +21,7 @@ require(tidyverse)
 ```
 
 
-```{r,include=FALSE}
+```{r,include=TRUE}
 mydir<-"c:/Users/pthompson/Dropbox/project SCT analysis/data from redcap/old versions/"
 sct.data<-read.csv(paste0(mydir,"SCTData_DATA_2017-10-02_1038.csv"))
 twin.data<-read.csv(paste0(mydir,"TwinsData_DATA_2017-10-02_1037.csv"))
@@ -60,7 +60,7 @@ names(data.f1)<-c("matrices_ss", "blockD_ss","Vocab_ss", "WJ_ss", "Sent_Rep_ss",
 
 A parallel analysis and scree plot were used to statistically determine whether multiple factors were present in the language and literacy data. The result indicated that two potential factors could be found on a purely statistical basis. Parallel analysis performs both factor and principal components, comparing the solutions for real and randomly resampled data from the real data to determine a more robust estimate of factors. Figure 2 shows the scree plot indicating two factors consistently.
 
-```{r,fig.cap="Scree plot for Language and Literacy data",echo=FALSE,message=FALSE,warning=FALSE}
+```{r,fig.cap="Scree plot for Language and Literacy data",echo=TRUE,message=FALSE,warning=FALSE}
 library(nFactors)
 
 ev <- eigen(cor(data.f1,use= "na.or.complete")) # get eigenvalues
@@ -74,7 +74,7 @@ plotnScree(nS)
 The language and literacy data fell naturally into two factors based on their content, giving reading and language factors. Two measures of non-verbal IQ (matrices and Block Design) were initially included into the language factor, but from a theoretical perspective made better sense to remove these and place into a separate factor, Non-verbal IQ. 
 A confirmatory factor analysis was performed on the data to investigate the three factor solution using the R statistical software and the Lavaan package. 
 
-```{r,warning=FALSE,include=FALSE}
+```{r,warning=FALSE,include=TRUE}
 library(lavaan)
 model.f6 <- ' f1 =~ Vocab_ss + WJ_ss + Sent_Rep_ss + Oro_ss 
               f2 =~ Nara_acc + Nara_comp + Nara_rate + Words_ss + Nwords_ss + Pics_ss + Digit_ss
@@ -88,11 +88,11 @@ lbls<-c("Vocab", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor","NARA\n
 ```
 The model gives a  satisfactory fit to the data, but due to the high amount of missing data in reading factor, it was decide to focus on the language factor only. (χ2 (`r fitmeasures(fit.mod.F)[['df']]`) = `r round(fitmeasures(fit.mod.F)[['chisq']],3)`, p = `r round(fitmeasures(fit.mod.F)[['pvalue']],3)`, CFI = `r round(fitmeasures(fit.mod.F)[['cfi']],3)`, RMSEA = `r round(fitmeasures(fit.mod.F)[['rmsea']],3)` (90% CI `r round(fitmeasures(fit.mod.F)[['rmsea.ci.lower']],3)`–`r round(fitmeasures(fit.mod.F)[['rmsea.ci.upper']],3)`), SRMR = `r round(fitmeasures(fit.mod.F)[['srmr']],3)`.
 
-```{r,fig.cap="Path diagram for full Confirmatory Factor Analysis (3 factor solution)",echo=FALSE}
+```{r,fig.cap="Path diagram for full Confirmatory Factor Analysis (3 factor solution)",echo=TRUE}
 semPaths(fit.mod.F, "std", title = TRUE,nodeLabels=lbls,intercepts = FALSE)
 ```
 
-```{r,include=FALSE}
+```{r,include=TRUE}
 model.f5a <- ' f1 =~ Vocab_ss + WJ_ss + Sent_Rep_ss + Oro_ss 
               Vocab_ss ~~ WJ_ss'     
 fit.mod.E2 <- cfa(model.f5a, data = data.f1,estimator = "ML",missing = "ML")
@@ -103,7 +103,7 @@ lbls<-c("Vocabulary", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor","L
 The amount of missing data in the reading factor was problematic and, so we re-ran the CFA with only the language factor, (χ2 (`r round(fitmeasures(fit.mod.E2)[['df']],3)`) = `r round(fitmeasures(fit.mod.E2)[['chisq']],3)`, p = `r round(fitmeasures(fit.mod.E2)[['pvalue']],3)`, CFI = `r round(fitmeasures(fit.mod.E2)[['cfi']],3)`, RMSEA = `r round(fitmeasures(fit.mod.E2)[['rmsea']],3)` (90% CI `r round(fitmeasures(fit.mod.E2)[['rmsea.ci.lower']],3)`–`r round(fitmeasures(fit.mod.E2)[['rmsea.ci.upper']],3)`), SRMR = `r round(fitmeasures(fit.mod.E2)[['srmr']],3)`). We also included a correlation term between vocabulary and Woodcock Johnson as suggested by Lavaan modification indices.
 
 
-```{r,fig.cap="Path diagram for Confirmatory Factor Analysis (single language factor)",echo=FALSE}
+```{r,fig.cap="Path diagram for Confirmatory Factor Analysis (single language factor)",echo=TRUE}
 semPaths(fit.mod.E2, "std", title = TRUE, curvePivot = TRUE, edge.label.cex = 1.2,width=10,height=5,nodeLabels=lbls,intercepts = FALSE,sizeMan = 10, sizeLat = 10)
 ```
 
