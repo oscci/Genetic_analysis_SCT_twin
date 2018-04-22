@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 require(tidyverse)
+require(yarrr) #for pirate plot
+library(ASGSCA)
 ```
 
 ## Step 1
@@ -37,10 +39,14 @@ twin.data <- read.csv(paste0(redcap.dir,twin.redcap),stringsAsFactors = FALSE)
 #fix any columns with discrepant names
 w<-which(colnames(twin.data)=='neurodev_diagnosis')
 colnames(twin.data)[w] <-'neurodev_diag'
+
+twin.data$dyslexia<-twin.data$dld_rd%%10 #modulus 10 , ie last digit
+twin.data$lang_disorder<-round((twin.data$dld_rd-4.5)/10) #first digit is dld code
+
 #----------------------------------------------------------------------------------
 
-keepcols <- c('record_id','age_at_test','wasi_matrices_ss','wasi_vocab_ss','wdck_jhsn_ss',
-              'wasi_block_design_ss','sent_rep_ss','oromotor_ss','nonword_rep_ss','nara_acc_ss',      'nara_comp_ss','nara_rate_ss','towre_words_ss','towre_nonwords_ss','phab_pic_ss','phab_digit_ss','srs_t_score','gcc','scdi','slt','splang_conc','schooling','piq','neurodev_diag',
+keepcols <- c('record_id','age_at_test','partial_testing','wasi_matrices_ss','wasi_block_design_ss','wasi_vocab_ss','wdck_jhsn_ss',
+              'sent_rep_ss','oromotor_ss','nonword_rep_ss','nara_acc_ss',      'nara_comp_ss','nara_rate_ss','towre_words_ss','towre_nonwords_ss','phab_pic_ss','phab_digit_ss','srs_t_score','gcc','scdi','slt','splang_conc','schooling','piq','neurodev_diag','dyslexia','lang_disorder',
               'hyperkinetic_icd_r1','adhd_comb_dsm_r1','adhd_hyp_dsm_r1','adhd_inatt_dsm_r1',
               'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score')
 
@@ -49,9 +55,10 @@ twin.short <-select(twin.data,keepcols)
 #----------------------------------------------------------------------------------
 
 #Add columns that are specific to twins or SCTs so all aligned
-sct.short$randomtwininclude <- NA
+sct.short$randomtwininclude <- 0 #this specifies child is not a twin but a trisomy
 sct.short$zygosity <- NA
-twin.short$randomtwininclude <- twin.data$randomtwininclude
+twin.short$randomtwininclude <- twin.data$randomtwininclude+1 #twins subdivided
+#randomly into 1 and 2 for replication sample
 twin.short$zygosity <- twin.data$zygosity
 
 sct.short$trisomy <- sct.data$trisomy
@@ -77,5 +84,245 @@ all.data <- cbind(all.di,all.short[myvec,])
 
 
 ```
+#Check that Ns match those in the protocol
+Should have twin groups with N = 184 and 186 (these are randomly assigned twin 1 and 2), and 130 SCT cases
+```{r ncheck}
+twintab <- table(all.data$randomtwininclude)
+names(twintab)<-c('SCT','twin1','twin2')
+scttab <- table(all.data$trisomy,all.data$why_tested)
+#why tested coded as: 0, maternal age
+# 1, medical concerns
+# 2, behavioural concerns
+# 3, neurodevelopmental concerns
+# 4, family history of genetic problems
+# 9, no information
+twintab
+scttab
 
+```
+#Deal with missing data
+Check there is no missing data for the SNPs (16 values now imputed).
+Check for nonword rep - in some cases need to substitute low score, as unable to attempt task. 
+N.B. The process used to extract the language factor can handle missing data, so for measures used in that, we just substitute NA for values > 900.
+```{r missingcheck}
+w <- which(is.na(all.data[,2:48]))
+paste('Cases with incomplete SNP data: ',all.data$record_id[w])
 
+#missing data has codes of 996-999 for language tests
+w <- which(all.data$nonword_rep_ss>900)
+print('Cases with missing nonword rep data: ')
+all.data$record_id[w]
+#These cases all checked : all SCT cases who either were not tested because v limited spoken language, or who refused spoken tests or had low scores on other language tests. All these cases assigned a scaled score of 3.
+all.data$nonword_rep_ss[w] <- 3
+
+#999 is code where child was not tested bcs too low-functioning
+w <- which(all.data$wasi_vocab_ss==999)
+print('Cases with missing Vocab data (999) reassigned to floor: ')
+all.data$record_id[w]
+#These assigned SS of 2.33 SD below mean (equivalent to 3 on NEPSY scale)
+all.data$wasi_vocab_ss[w] <- 25
+
+w <- which(all.data$wdck_jhsn_ss==999)
+print('Cases with missing Woodcock_J data (999) reassigned to floor: ')
+all.data$record_id[w]
+#These assigned SS of 2.33 SD below mean (equivalent to 3 on NEPSY scale)
+all.data$wdck_jhsn_ss[w] <- 55
+
+w <- which(all.data$sent_rep_ss==999)
+print('Cases with missing Sent rep data (999) reassigned to floor:: ')
+all.data$record_id[w]
+#These assigned SS of 2.33 SD below mean (equivalent to 3 on NEPSY scale)
+all.data$sent_rep_ss[w] <- 3
+
+w <- which(all.data$oromotor_ss==999)
+print('Cases with missing oromotor data (999) reassigned to floor:: ')
+all.data$record_id[w]
+#These assigned SS of 1 , as this corresponds to floor in this sample
+all.data$oromotor_ss[w] <- 1
+
+#Now substitute NA for any remaining > 900
+mycols<-colnames(all.data)
+mc <-which(mycols=='wasi_vocab_ss')
+for (i in mc:(mc+3)){
+w <- which(all.data[,i]>900)
+all.data[w,i]<-NA
+
+}
+md <- which(is.na(all.data[,mc:(mc+3)]))
+print(paste0(length(md),' missing values from ',nrow(all.data)*4,' datapoints in 4 language tests'))
+```
+#Compute language factor, using script from Appendix 2
+```{r langfactor}
+library(lavaan)
+library(semPlot)
+model.f5a <- ' f1 =~ wasi_vocab_ss + wdck_jhsn_ss + sent_rep_ss + oromotor_ss 
+              wasi_vocab_ss ~~ wdck_jhsn_ss'     
+fit.mod.E2 <- cfa(model.f5a, data = all.data,estimator = "ML",missing = "ML")
+lbls<-c("Vocabulary", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor","Language")
+semPaths(fit.mod.E2, "std", title = TRUE, curvePivot = TRUE, edge.label.cex = 1.2,width=10,height=5,nodeLabels=lbls,intercepts = FALSE,sizeMan = 10, sizeLat = 10)
+all.data$langfactor <- predict(fit.mod.E2) #factor scores
+```
+
+#Create general neurodevelopmental index, using script from Appendix 3
+Our goal is to create a single scale reflecting global level of neurodevelopmental impairment. Data from initial parental telephone interview are available for all children. Data from language testing are available for all but two very low-functioning children, who were unable to attempt our tasks. Data from parental questionnaires (CCC-2 and SRS) and DAWBA DSM5 diagnoses are available for a subset. For SCT cases, questionnaire data were available for 127 out of 143 children, and DAWBA for 89 children. For comparison twin children, questionnaire data were available for 316 out of 388 children, and DAWBA for 276 children. We use all available data for each child to create a scale by adding points as follows:
+*History of speech problems = 1
+*Current help in mainstream school (support or special class or SLT) =1
+*Special school = 2
+*Dyslexia (test scores, unless no data , in which case report from parent interview) = 1
+*DLD (test scores, unless no data , in which case report from parent interview) = 1
+*ADHD (parental report or DAWBA diagnosis) = 1
+*Behaviour problems (DAWBA diagnosis of conduct disorder or clear description on interview) = 1
+*Autistic features: report from interview of definite diagnosis, or SRS = 90, or DAWBA diagnosis = 2
+*Low IQ (PIQ < 70 or refusal/inability to do battery - with exception of reading tests) = 1
+
+```{r makeglobal}
+# NB coding for slt is:
+#0, never ; 1, preschool only; 2, beyond 4 yr; 3, ongoing; 8, assessed only; 9, no information
+
+# Neurodev diagnosis codes:
+# 0 none; others coded as all applicable from list:
+#  1 ADHD, 2 APD, 3 ASD, 4 behav, 5 dyscalc, 6 dyslexia, 7 dyspraxia, 8  DLD/SLI/LD, 9 ID/GDD
+
+#Lang dis from test scores; 0, no; 1, subclinical; 2, yes; 8, iq< 70; 9, no test results
+#Dyslexia from test scors :0, no; 1, yes; 8, piq< 70; 9, no test results
+
+#lang_concerns from parental report coded as splang_conc:
+#0, never; 1, past; 2, continuing mild; 3, continuing severe; 9, unclear
+#[for twins we also have code 4 if just concerns re reading; this is ignored here]
+
+#SLT from parent report: 0, never; 1, preschool only; 2, beyond 4 yr; 3, ongoing; 8, assessed only; 9, no information
+
+# School code
+#1, mainstream no help; 2, mainstream with help; 3, special class/unit; 4, special school; 5, home schooled; 8, other; 9, dk
+
+all.data$global_neurodev<-0 #Initialise to zero
+w<-which(is.na(all.data$srs_t_score)) #Recode NA to 999 for SRS
+all.data$srs_t_score[w]<-999
+
+temp<-all.data$global_neurodev
+w<-unique(which(all.data$slt==1),which(all.data$slt==8)) #Cases with preschool SLT or assessed by SLT
+all.data$global_neurodev[w]<-all.data$global_neurodev[w]+1
+
+#Now code so can add one point for help in mainstream or ongoing SLT or in language unit
+w1<-c(which(all.data$schooling==2),which(all.data$schooling==3)) #help in mainstream/lang unit
+
+all.data$global_neurodev[w1]<-all.data$global_neurodev[w1]+1
+
+#add 2 points if attending special school
+w<-which(all.data$schooling==4)
+all.data$global_neurodev[w]<-all.data$global_neurodev[w]+1
+
+#add 1 point if PIQ < 70 or not completed
+w<-which(all.data$piq<70)
+w1<-which(all.data$piq>996)
+w2<-which(all.data$partial_testing>199) #failed to complete test battery (not because of age)
+allw<-unique(w,w1,w2)
+all.data$global_neurodev[allw]<-all.data$global_neurodev[allw]+1
+
+## Next bits done in a loop because criteria not captured in a single code
+nrows <-nrow(all.data)
+for (i in 1:nrows){
+  
+  # add 1 to code if meets language test criteria for dyslexia OR (if no data) has diagnosis of this 
+  # reported on parent interview
+  wd<-NA
+  temp<-all.data$dyslexia[i] #coding according to test battery, 1 if dyslexic
+  if(temp==9){
+    wd<-unlist(gregexpr(pattern ='6',toString(all.data$neurodev_diagnosis[i]))) #dyslexia code is 6
+    #wd is one if 6 is included in neurodev_diag
+  }
+  if(length(wd)<1){temp=0}
+  if (temp>0){all.data$global_neurodev[i]<-all.data$global_neurodev[i]+1}
+
+#Add 1 to code if evidence of ADHD on parental interview or DAWBA
+  w2<-unlist(gregexpr(pattern ='1',toString(all.data$neurodev_diagnosis[i]))) #ADHD code is 1
+  if(w2==0){
+  w2<-max(all.data$adhd_comb_dsm_r1[i],all.data$adhd_hyp_dsm_r1[i],all.data$adhd_inatt_dsm_r1[i])
+  }
+if (w2>0){all.data$global_neurodev[i]<-all.data$global_neurodev[i]+1}
+  
+# add 1 to code if meets language test criteria for lang_disorder OR (if no data) has diagnosis of this 
+# reported on parent interview
+
+temp<-all.data$lang_disorder[i] #coding according to test battery, 2 if with poor comp, 1 otherwise
+w1<-temp
+if(w1==2){w1<-1} #just one point added regardless of whether lang_dis code is 1 or 2
+if(temp==9){ #no data on language tests so use parent interview
+  w1<-unlist(gregexpr(pattern ='8',toString(all.data$neurodev_diagnosis[i]))) #DLD code is 8
+  if(all.data$slt[i]==3){w1<-1} #regardless of diagnosis, ongoing SLT counts as DLD
+  if(all.data$splang_conc[i]==3){w1<-1}#also serious language concerns count as DLD
+} 
+if (w1>0){all.data$global_neurodev[i]<-all.data$global_neurodev[i]+w1}
+#NB more severe language problems with poor comprehension get addition of 2 points
+
+# add 1 to code if significant behaviour problems on interview or DAWBA
+
+  w1<-unlist(gregexpr(pattern ='4',toString(all.data$neurodev_diagnosis[i]))) #behav problems code is 4
+  w2<-all.data$conduct_dsm_r1[i]
+if (is.na(w2)){w2<-0}
+  if (max(w1,w2)>0){all.data$global_neurodev[i]<-all.data$global_neurodev[i]+1}
+  
+# add 2 to code if ASD on interview or DAWBA or SRS is 90 or more
+
+w1<-unlist(gregexpr(pattern ='3',toString(all.data$neurodev_diagnosis[i]))) #ASD code is 3
+w2<-all.data$asd_dsm_r1[i]
+if(is.na(w2)){w2<-0}
+w3<-0
+
+if(all.data$srs_t_score[i]>89) {w3<-1} #SRS t score 90
+
+     if(all.data$srs_t_score[i]>900){w3<-0} 
+if (max(w1,w2,w3)>0){all.data$global_neurodev[i]<-all.data$global_neurodev[i]+2}
+#vertically jittered data created so all points visible on plot
+all.data$global_jittered[i]<-all.data$global_neurodev[i]+.5*runif(1)-.25
+}
+pirateplot(formula = all.data$global_jittered~ randomtwininclude,
+           point.o = .5,
+           bar.f.o=.0,
+           inf.f.o=.2,
+           bean.b.o=.5,
+           jitter=.1,
+           data = all.data,
+           ylab='Global rating',
+           ylim=c(0,10),
+           main="Distribution of global impairment\n in SCT and Comparison groups")
+```
+
+#Write the data to a csv file after removing IDs
+```{R write data}
+all.data$ID <-1:500
+all.data$record_id <-1:500
+write.csv(all.data,'genopheno_data_sct_twin.csv')
+```
+#Run GSCA on each of the 3 groups
+```{r runGSCA}
+
+options(scipen = 999) #turn off scientific notation
+
+thisgroup <- 0 #SCT
+groupname <-c('SCT','Twin1','Twin2')
+
+for (thisgroup in 1:3){
+print(groupname[thisgroup])
+w <- which(all.data$randomtwininclude==(thisgroup-1))
+
+mysample <- all.data[w,c(2:48,58,88,89)]
+
+ObservedVar=colnames(mysample)
+LatentVar=c("NRXN","CNTNAP2","Neurodev")
+#first 23 SNPs are from NRXN and next lot from CNTNAP2
+#W0 is I x L matrix where rows are genotypes and traits, columns are genes and latent phenotype
+W0=matrix(rep(0,3*length(mysample)),nrow=length(mysample),ncol=3, dimnames=list(ObservedVar,LatentVar))
+W0[1:23,1]=W0[24:47,2]=W0[48:50,3]=1
+
+#B0 is L x L matrix with 0s and 1s, where 1 indicates arrow from latent geno in row to latent phenotype in column
+B0=matrix(rep(0,3*3),nrow=3,ncol=3, dimnames=list(LatentVar,LatentVar))
+B0[1,3]=1
+B0[2,3]=1
+
+mynperm=1000 #probably need more than this but to test prog use 100 for speed
+ myfit<-GSCA(mysample,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=TRUE,path=NULL,nperm=mynperm)
+
+print(myfit)
+}
+```
