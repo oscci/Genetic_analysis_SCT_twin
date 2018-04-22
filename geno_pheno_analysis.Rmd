@@ -1,0 +1,81 @@
+---
+title: "genopheno_analysis"
+author: "dorothy"
+date: "22/04/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+```
+
+## Step 1
+Read in Di's datafile. First remove DB from ID, and _rpt, and for twins add A or B to the ID - new id column should match redcap record_id. Also delete original IID and FID cols. 
+Save this sheet as csv.
+
+```{r readdi}
+read.di.dir <- "~/Dropbox/ERCadvanced/project SCT analysis/SCT genetic analysis/snp raw data/"
+di.file <- 'Di_imputed_SCT_twin.csv'
+all.di <- read.csv(paste0(read.di.dir,di.file),stringsAsFactors = FALSE)
+```
+
+## Step 2
+Read in latest SCT from redcap.
+Do the same for the twins.
+Select variables to be used.
+
+
+```{r readredcap}
+redcap.dir <-"~/Dropbox/ERCadvanced/project SCT analysis/Data from Redcap/"
+#Use latest version
+sct.redcap <- 'SCTData_DATA_2018-01-22_1351.csv'
+twin.redcap <- 'TwinsData_DATA_2018-01-22_1400.csv'
+sct.data <- read.csv(paste0(redcap.dir,sct.redcap),stringsAsFactors = FALSE)
+twin.data <- read.csv(paste0(redcap.dir,twin.redcap),stringsAsFactors = FALSE)
+
+#fix any columns with discrepant names
+w<-which(colnames(twin.data)=='neurodev_diagnosis')
+colnames(twin.data)[w] <-'neurodev_diag'
+#----------------------------------------------------------------------------------
+
+keepcols <- c('record_id','age_at_test','wasi_matrices_ss','wasi_vocab_ss','wdck_jhsn_ss',
+              'wasi_block_design_ss','sent_rep_ss','oromotor_ss','nonword_rep_ss','nara_acc_ss',      'nara_comp_ss','nara_rate_ss','towre_words_ss','towre_nonwords_ss','phab_pic_ss','phab_digit_ss','srs_t_score','gcc','scdi','slt','splang_conc','schooling','piq','neurodev_diag',
+              'hyperkinetic_icd_r1','adhd_comb_dsm_r1','adhd_hyp_dsm_r1','adhd_inatt_dsm_r1',
+              'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score')
+
+sct.short <- select(sct.data,keepcols)
+twin.short <-select(twin.data,keepcols)
+#----------------------------------------------------------------------------------
+
+#Add columns that are specific to twins or SCTs so all aligned
+sct.short$randomtwininclude <- NA
+sct.short$zygosity <- NA
+twin.short$randomtwininclude <- twin.data$randomtwininclude
+twin.short$zygosity <- twin.data$zygosity
+
+sct.short$trisomy <- sct.data$trisomy
+sct.short$pre_postnatal_diag <- sct.data$pre_postnatal_diag
+sct.short$why_tested <-sct.data$why_tested
+twin.short$trisomy <- NA
+twin.short$pre_postnatal_diag <- NA
+twin.short$why_tested <- NA
+#----------------------------------------------------------------------------------
+#Bolt SCT and twin files together
+all.short <-rbind(sct.short,twin.short)
+
+#----------------------------------------------------------------------------------
+#Join columns for those that match the ones in all.di
+# Inefficient but safe to do this in a loop
+myvec <- vector()
+for (i in 1:nrow(all.di)){
+  myid <- all.di$ID[i]
+  w <- which (all.short$record_id==myid)
+  myvec <- c(myvec,w) #vector of rows in correct order
+}
+all.data <- cbind(all.di,all.short[myvec,])
+
+
+```
+
+
