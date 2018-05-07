@@ -1,7 +1,7 @@
 ---
 title: "Variation in neurodevelopmental outcomes: Results"
 author: "Dianne F. Newbury, Nuala H. Simpson, Paul A. Thompson, Dorothy V. M. Bishop"
-date: "05/05/2018"
+date: "07/05/2018"
 output:
   pdf_document: default
   html_document: default
@@ -14,6 +14,7 @@ require(yarrr) #for pirate plot
 require(beanplot)
 library(ASGSCA)
 require(MASS) #used to simulate data when getting expected p-values
+library(knitr) #needed for kable
 #NB manually set working directory to source file location
 ```
 ```{r readdi, echo=FALSE}
@@ -54,8 +55,8 @@ keepcols <- c('record_id','age_at_test','partial_testing','wasi_matrices_ss','wa
               'hyperkinetic_icd_r1','adhd_comb_dsm_r1','adhd_hyp_dsm_r1','adhd_inatt_dsm_r1',
               'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score')
 
-sct.short <- select(sct.data,keepcols)
-twin.short <-select(twin.data,keepcols)
+sct.short <- dplyr::select(sct.data,keepcols)
+twin.short <-dplyr::select(twin.data,keepcols)
 #----------------------------------------------------------------------------------
 
 #Add columns that are specific to twins or SCTs so all aligned
@@ -304,7 +305,8 @@ gencor <-data.frame(cor(all.data[,2:48]))
 
 ```
 ##Results
-Figure 5 shows the distributions of scores on the three phenotypes for children with sex chromosome trisomies and the two comparison groups. The scores for Global burden are inverted so a low score corresponds to impairment, as with the other two measures, and scores on Global burden and Nonword repetition are jittered vertically for clarity. As anticipated, the group with SCTs show more impairment on all three phenotype measures than the two comparison groups, even though the latter was selected to be enriched for cases of language disorder. Note, however, that in both groups there is a wide range of scores. Nonword repetition correlated `r round(phencor[1,2],2)` with the language factor, and `r round(phencor[1,3],2)` with the global impairment rating. The language factor and global impairment rating correlated `r round(phencor[2,3],2)`.
+Figure 5 shows the distributions of scores on the three phenotypes for children with sex chromosome trisomies and the two comparison groups. The scores for Global burden are inverted so a low score corresponds to impairment, as with the other two measures, and scores on Global burden and Nonword repetition are jittered vertically for clarity. Phenotypic characteristics of children with SCTs will be the focus of a separate publication, but we may note that, as anticipated, the group with SCTs show evidence of impairment on all three phenotype measures, but with a wide range of scores. Nonword repetition correlated `r round(phencor[1,2],2)` with the language factor, and `r round(phencor[1,3],2)` with the global impairment rating. The language factor and global impairment rating correlated `r round(phencor[2,3],2)`.
+(Note to self: used beanplots as problems with pirate plot in a loop - need to fix this).
 ```{r pirate, fig.width=15,fig.height=6,fig.cap="Figure 5", echo=FALSE}
 ##Plot phenotypes for 3 groups
 #Use pirate plot to show individual data (doesn't work in loop so here have beanplot)
@@ -332,12 +334,17 @@ par(mfrow=c(1,3))
   }
 
 par(mfrow=c(1,1)) #turn off split screen
+mynperm=200 # Specify here N permutations for GSCA - will refer to this in the text.
+#to test prog use 200 for speed; for final version alter to 5000 (takes several hrs to run)
 ```
 
+##GSCA path-fitting analysis
+Data from the three phenotypes were fitted using the model in Figure 4, first for the SCT group, and then separately for the two comparison groups. P-values were based on `r mynperm` permutations. The association with the 'Neurodev' factor did not meet our criterion for significance for either NRXN1 nor CNTNAP2. 
+(Note to self: these results based on 200 permutations - need to redo with more permutations for final version).
+```{r runGSCA,echo=FALSE}
 
 #Run GSCA on each of the 3 groups
-```{r runGSCA,echo=FALSE}
-mynperm=100 # to test prog use 100 for speed; for final version alter to 5000 (takes several hrs to run)
+
 
 options(scipen = 999) #turn off scientific notation
 allfit<-data.frame(matrix(0,3,5))  #make data table to save results
@@ -375,13 +382,15 @@ allfit[thisgroup,5]<-myfit$pvalues[2,3]
 }
 kable(allfit,caption='Table 3')
 ```
+
+
 ##Additional exploratory analyses
-1. Check that strong and consistent effects of individual SNPs are not being missed.
+1. Check that strong and consistent effects of individual SNPs are not being missed. Tables (need a bit of reformatting!) show for each SNP, group and phenotype, the distribution of genotypes (0, 1 or 2 minor alleles), the beta for regression of phenotype on genotype, and the p-value. There were no indications of any consistent patterns of association between specific SNPs and phenotypes.
 ```{r manyregs, echo=FALSE}
 ##Check regression of each SNP on each pheno for each group
 phenocols <- c(58,88,89)
 pmatrix <- data.frame(matrix(NA,47,10))
-
+bmatrix <-data.frame(pmatrix)
    for (s in 2:48){
      pmatrix[(s-1),1] <- colnames(all.data)[s]
      thiscol <-1
@@ -394,26 +403,59 @@ pmatrix <- data.frame(matrix(NA,47,10))
      colnames(mysample)<-c('x','y')
      myfit<- lm(y ~ x , data=mysample)
      pmatrix[(s-1),thiscol] <- summary(myfit)$coefficients[2,4] 
+     bmatrix[(s-1),thiscol]<- paste(round(summary(myfit)$coefficients[2,1],2),'\u00B1', round(summary(myfit)$coefficients[2,2],2))
      colnames(pmatrix)[thiscol]<-paste0('G',g,'_Ph',p)
     }
   }
    }
 write.csv(pmatrix,'p_value_matrix.csv')
+```
+
+```{R SNPsummary, echo=FALSE}
 #redo as correlation matrix
 checkcor <- data.frame(cor(all.data[,2:48]))
 write_csv(checkcor,'mycheckcor.csv')
 
-sumtable <- data.frame(matrix(0,47,10)) #create table to summarize freqs of SNPs
-colnames(sumtable)<-c('SCT0','SCT1','SCT2','twA0','twA1','twA2','twB0','twB1','twB2')
+sumtable <- data.frame(matrix(0,47,28)) #create table to summarize freqs of SNPs, with beta and p-values by group and SNP
+colnames(sumtable)<-c('SNP','SCT0','SCT1','SCT2','SCT_nwd_b','SCT_nwd_p','SCT_lang_b','SCT_lang_p','SCT_global_b','SCT_global_p',
+        'TWA0','TWA1','TWA2','TWA_nwd_b','TWA_nwd_p','TWA_lang_b','TWA_lang_p','TWA_global_b','TWA_global_p',
+         'TWB0','TWB1','TWB2','TWB_nwd_b','TWB_nwd_p','TWB_lang_b','TWB_lang_p','TWB_global_b','TWB_global_p')
 for (ii in 2:48){
   thist <- table(all.data$randomtwininclude,all.data[,ii])
   sumtable[(ii-1),2:4]<-thist[c(1,4,7)]
-  sumtable[(ii-1),5:7]<-thist[c(2,5,8)]
-  sumtable[(ii-1),8:10]<-thist[c(3,6,9)]
+  sumtable[(ii-1),11:13]<-thist[c(2,5,8)]
+  sumtable[(ii-1),20:22]<-thist[c(3,6,9)]
   sumtable[(ii-1),1]<-colnames(all.data)[ii]
-  }
+}
+  sumtable[,c(5,7,9)]<-bmatrix[,2:4] #b values for group SCT, 3 phenos
+  sumtable[,c(6,8,10)]<-round(pmatrix[,2:4],2) #p values for group SCT, 3 phenos
+  sumtable[,c(14,16,18)]<-bmatrix[,5:7] #b values for group twinA, 3 phenos
+  sumtable[,c(15,17,19)]<-round(pmatrix[,5:7],2) #p values for group twinA, 3 phenos
+  sumtable[,c(23,25,27)]<-bmatrix[,8:10] #b values for group SCT, 3 phenos
+  sumtable[,c(24,26,28)]<-round(pmatrix[,8:10],2) #p values for group SCT, 3 phenos
+write_csv(sumtable,'SNPsummary.csv')
+#break into tables that will print on A4 and transpose
+sumtab1<-t(sumtable[1:6,])#NRXN1 
+sumtab2<-t(sumtable[12:17,]) 
+sumtab3<-t(sumtable[18:23,])
+sumtab4<-t(sumtable[24:30,]) #CNTNAP2 
+sumtab5<-t(sumtable[31:36,])
+sumtab6<-t(sumtable[37:42,]) 
+sumtab7<-t(sumtable[43:47,]) 
+print('NRXN1 SNPs')
+kable(sumtab1)
+kable(sumtab2)
+kable(sumtab3)
+print('CNTNAP2 SNPs')
+kable(sumtab4)
+kable(sumtab5)
+kable(sumtab6)
+kable(sumtab7)
 ```
-```{r simnull}
+
+##P-value histograms
+Histograms were used to compare observed distribution of p-values with that expected by chance, taking into account the correlations within the SNP set and the correlations between phenotypes. It is clear from inspection that the distribution of p-values is compatible with there being no association between SNPs and phenotypes.
+```{r simnull, echo=FALSE}
 #Simulate data assuming no geno-pheno correlation
 # We predict a rectangular distribution of p-values, but doing it this way means we
 # can consider if there is any impact of correlations within genos and phenos
@@ -455,7 +497,7 @@ obsp.twinB <- c(pmatrix[,8],pmatrix[,9],pmatrix[,10])
 hist(obsp.twinB,breaks=40)
 ```
 ```{R write data, echo=FALSE}
-#Write the data to a csv file after removing IDs
+#Write the original data to a csv file after removing IDs
 #Also remove data on schooling, slt and pre-postnatal diag for confidentiality
 
 all.data$ID <-1:500
@@ -463,9 +505,11 @@ all.data$record_id <-1:500
 short.data<- all.data[,-c(69,71,86)]
 write.csv(all.data,'genopheno_data_sct_twin.csv')
 ```
-```{r reducedset}
-#2. Try redoing after omitting those with no homozygous rare allele
-doreduce=0
+```{r reducedset,echo=FALSE}
+#A couple of alternative runs of GSCA just to check whether atypical SNPs affect results.
+# 1. Try redoing after omitting those with no homozygous rare allele
+doreduce=0 #to avoid slowing down knitr, make this optional - results are unexciting!
+#Confirms this is not masking interesting effects
 if (doreduce==1){
   ww<-1+which(sumtable[,4]>-1) #all with some numeric values
 for (thisgroup in 1:3){
@@ -491,9 +535,10 @@ print(myfit)
 }
 }
 ```
-```{r reducedset2}
-#3. Try redoing after omitting those that correlate > .9 with another SNP
-doreduce2=0
+```{r reducedset2, echo=FALSE}
+#2. Do high intercorrelations between SNPs affect GCSA?
+# Try redoing after omitting those that correlate > .9 with another SNP
+doreduce2=0 #again, this is optional, and just here for completeness, as it does not have much impact
 if (doreduce2==1){
   mynperm=100 
 mykeep <-vector()
@@ -522,4 +567,63 @@ B0[2,3]=1
 print(myfit)
 }
 }
+```
+##Comparison of 3 karyotypes
+In a final exploratory analysis, the GSCA was re-run for each of the three karyotypes separately. There was no hint of any karyotype-specific effects.
+```{r GSCAkary,echo=FALSE}
+
+#Run GSCA on each of the 3 karyotypes
+
+
+options(scipen = 999) #turn off scientific notation
+allfit<-data.frame(matrix(0,3,5))  #make data table to save results
+colnames(allfit)<-c('Group','NRXN1 path','NRXN1 p-value','CNTNAP2 path','CNTNAP2 p-value')
+
+thisgroup <- 0 #SCT
+groupname <-c('XXX','XXY','XYY')
+
+for (thisgroup in 1:3){
+print(groupname[thisgroup])
+w <- which(all.data$trisomy==thisgroup)
+
+mysample <- all.data[w,c(2:48,58,88,89)]
+
+
+#With this reduced sample size, some SNPs have zeroes for all cases - need to exclude these
+coltots <-colSums(mysample[,1:47])
+wc <- which(coltots==0)
+if (length(wc)>0){
+mysample <- mysample[,-wc]
+}
+n1 <-length(which(wc<24))
+n2 <- length(which(wc>23))
+range1 <- 1:23
+range2 <-24: 47
+range3 <-48:50
+
+  range1 <- 1:(max(range1)-n1)
+  range2 <-(1+max(range1)):(max(range1)+24-n2)
+  range3 <-(1+max(range2)):(max(range2)+3)
+  ObservedVar=colnames(mysample)
+LatentVar=c("NRXN","CNTNAP2","Neurodev")
+#first 23 SNPs are from NRXN and next lot from CNTNAP2
+#W0 is I x L matrix where rows are genotypes and traits, columns are genes and latent phenotype
+W0=matrix(rep(0,3*length(mysample)),nrow=length(mysample),ncol=3, dimnames=list(ObservedVar,LatentVar))
+W0[range1,1]=W0[range2,2]=W0[range3,3]=1
+
+#B0 is L x L matrix with 0s and 1s, where 1 indicates arrow from latent geno in row to latent phenotype in column
+B0=matrix(rep(0,3*3),nrow=3,ncol=3, dimnames=list(LatentVar,LatentVar))
+B0[1,3]=1
+B0[2,3]=1
+
+ myfit<-GSCA(mysample,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=TRUE,path=NULL,nperm=mynperm)
+
+#print(myfit)
+allfit[thisgroup,1]<-groupname[thisgroup]
+allfit[thisgroup,2]<-round(myfit$Path[1,3],2)
+allfit[thisgroup,3]<-myfit$pvalues[1,3]
+allfit[thisgroup,4]<-round(myfit$Path[2,3],2)
+allfit[thisgroup,5]<-myfit$pvalues[2,3]
+}
+kable(allfit,caption='Table 4')
 ```
