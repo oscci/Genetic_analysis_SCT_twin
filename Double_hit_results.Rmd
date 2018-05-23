@@ -1,21 +1,31 @@
 ---
-title: "Variation in neurodevelopmental outcomes: Results"
+title: 'Variation in neurodevelopmental outcomes: Results'
 author: "Dianne F. Newbury, Nuala H. Simpson, Paul A. Thompson, Dorothy V. M. Bishop"
 date: "07/05/2018"
 output:
+  word_document: default
   pdf_document: default
   html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require(doBy)
 require(tidyverse)
+require(lavaan)
 require(yarrr) #for pirate plot
 require(beanplot)
-library(ASGSCA)
+require(expss) #for fancy tables
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("ASGSCA") #ASGSA is loaded via bioconductor
+#see http://bioconductor.org/packages/release/bioc/html/ASGSCA.html
+
+require(ASGSCA)
+
 require(MASS) #used to simulate data when getting expected p-values
 library(knitr) #needed for kable
-#NB manually set working directory to source file location
+require(stargazer)
+#NB user should manually set working directory to source file location
 ```
 ```{r readdi, echo=FALSE}
 ## Step 1
@@ -40,7 +50,7 @@ sct.redcap <- 'SCTData_DATA_2018-01-22_1351.csv'
 twin.redcap <- 'TwinsData_DATA_2018-01-22_1400.csv'
 sct.data <- read.csv(paste0(redcap.dir,sct.redcap),stringsAsFactors = FALSE)
 twin.data <- read.csv(paste0(redcap.dir,twin.redcap),stringsAsFactors = FALSE)
-
+sct.data$rs7794745<-NA #add this for conformity with twin data
 #fix any columns with discrepant names
 w<-which(colnames(twin.data)=='neurodev_diagnosis')
 colnames(twin.data)[w] <-'neurodev_diag'
@@ -53,12 +63,25 @@ twin.data$lang_disorder<-round((twin.data$dld_rd-4.5)/10) #first digit is dld co
 keepcols <- c('record_id','age_at_test','partial_testing','wasi_matrices_ss','wasi_block_design_ss','wasi_vocab_ss','wdck_jhsn_ss',
               'sent_rep_ss','oromotor_ss','nonword_rep_ss','nara_acc_ss',      'nara_comp_ss','nara_rate_ss','towre_words_ss','towre_nonwords_ss','phab_pic_ss','phab_digit_ss','srs_t_score','gcc','scdi','slt','splang_conc','schooling','piq','neurodev_diag','dyslexia','lang_disorder',
               'hyperkinetic_icd_r1','adhd_comb_dsm_r1','adhd_hyp_dsm_r1','adhd_inatt_dsm_r1',
-              'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score')
+              'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score','rs7794745')
 
 sct.short <- dplyr::select(sct.data,keepcols)
 twin.short <-dplyr::select(twin.data,keepcols)
 #----------------------------------------------------------------------------------
+```
 
+```{r snpcheck,echo=FALSE}
+#Is there any overlap between di SNPs and those done in Nijmegen (just on twins?)
+snpchecker<-0 #this bit won't run: just for historical interest
+if(snpchecker==1){
+nijsnp<-colnames(twin.data)[351:373]
+disnp<-colnames(all.di)[2:48]
+allsnp<-sort(c(nijsnp,disnp))
+}
+#eyeballing these shows that we do have Nijmegen rs7794745, which was imputed by Di - so we can compare these
+```
+
+```{r combine}
 #Add columns that are specific to twins or SCTs so all aligned
 sct.short$randomtwininclude <- 0 #this specifies child is not a twin but a trisomy
 sct.short$zygosity <- NA
@@ -86,6 +109,8 @@ for (i in 1:nrow(all.di)){
   myvec <- c(myvec,w) #vector of rows in correct order
 }
 all.data <- cbind(all.di,all.short[myvec,])
+
+crotable(all.data$rs7794745imp_T,all.data$rs7794745)
 
 
 ```
@@ -296,7 +321,8 @@ all.data$nonword_rep_jittered[i]<-all.data$nonword_rep_ss[i]+.5*runif(1)-.25
 ```
 ```{r computecorr, echo=FALSE}
 #compute correlation between the 3 phenotypes
-phendat<-all.data[,c(58,88,89)]
+phencols<-which(colnames(all.data)%in%c('nonword_rep_ss','langfactor','global_neurodev')) #find the columns corresponding to phenotypes
+phendat<-all.data[,phencols]
 phencor <- data.frame(cor(phendat))
 #compute correlation between the SNPs
 gencor <-data.frame(cor(all.data[,2:48]))
@@ -315,7 +341,8 @@ par(mfrow=c(1,3))
   all.data$randomtwininclude <- as.factor(all.data$randomtwininclude)
    levels(all.data$randomtwininclude)<- c('SCT','Twin1','Twin2') #ensures correct labels for axis
   mypheno <- c('Nonword repetition','Language factor','Global burden (inverted)')
-  mycol <- c(91,88,90) #using jittered values for visibility
+  mycol<-which(colnames(all.data)%in%c('nonword_rep_jittered','langfactor','global_jittered')) #find the columns corresponding to phenotypes
+
   colnames(all.data)[mycol] #check we have correct variables
   myylim <- matrix(c(0,20,-30,30,0,10),nrow=3,byrow=TRUE)
   for (i in 1:3){
@@ -342,7 +369,8 @@ mynperm=200 # Specify here N permutations for GSCA - will refer to this in the t
 Data from the three phenotypes were fitted using the model in Figure 4, first for the SCT group, and then separately for the two comparison groups. P-values were based on `r mynperm` permutations. The association with the 'Neurodev' factor did not meet our criterion for significance for either NRXN1 nor CNTNAP2. 
 (Note to self: these results based on 200 permutations - need to redo with more permutations for final version).
 ```{r runGSCA,echo=FALSE}
-
+rungp<-0
+if (rungp==1){
 #Run GSCA on each of the 3 groups
 
 
@@ -357,7 +385,7 @@ for (thisgroup in 1:3){
 print(groupname[thisgroup])
 w <- which(all.data$randomtwininclude==levels(all.data$randomtwininclude)[thisgroup])
 
-mysample <- all.data[w,c(2:48,58,88,89)]
+mysample <- all.data[w,c(2:48,phencols)]
 
 ObservedVar=colnames(mysample)
 LatentVar=c("NRXN","CNTNAP2","Neurodev")
@@ -381,6 +409,7 @@ allfit[thisgroup,4]<-round(myfit$Path[2,3],2)
 allfit[thisgroup,5]<-myfit$pvalues[2,3]
 }
 kable(allfit,caption='Table 3')
+}
 ```
 
 
@@ -388,7 +417,7 @@ kable(allfit,caption='Table 3')
 1. Check that strong and consistent effects of individual SNPs are not being missed. Tables (need a bit of reformatting!) show for each SNP, group and phenotype, the distribution of genotypes (0, 1 or 2 minor alleles), the beta for regression of phenotype on genotype, and the p-value. There were no indications of any consistent patterns of association between specific SNPs and phenotypes.
 ```{r manyregs, echo=FALSE}
 ##Check regression of each SNP on each pheno for each group
-phenocols <- c(58,88,89)
+
 pmatrix <- data.frame(matrix(NA,47,10))
 bmatrix <-data.frame(pmatrix)
    for (s in 2:48){
@@ -399,7 +428,7 @@ bmatrix <-data.frame(pmatrix)
         for (p in 1:3){
         if (p>1) {thiscol <-thiscol+1}
      w <- which(all.data$randomtwininclude==levels(all.data$randomtwininclude)[g])
-     mysample <- all.data[w,c(s,phenocols[p])]
+     mysample <- all.data[w,c(s,phencols[p])]
      colnames(mysample)<-c('x','y')
      myfit<- lm(y ~ x , data=mysample)
      pmatrix[(s-1),thiscol] <- summary(myfit)$coefficients[2,4] 
@@ -409,6 +438,25 @@ bmatrix <-data.frame(pmatrix)
   }
    }
 write.csv(pmatrix,'p_value_matrix.csv')
+```
+
+```{R redoreg}
+##Check regression of nonimputed version of rs7794745
+rscol<-which(colnames(all.data)=='rs7794745')
+thiscol=0
+smallpmat<-matrix(NA,nrow=2,ncol=3)
+     for (g in 2:3){ #not available for SCT, just twins (groups 2-3)
+       thiscol <-thiscol+1
+        for (p in 1:3){
+        if (p>1) {thiscol <-thiscol+1}
+     w <- which(all.data$randomtwininclude==levels(all.data$randomtwininclude)[g])
+     mysample <- all.data[w,c(phencols[p],rscol)]
+     colnames(mysample)<-c('x','y')
+     myfit<- lm(y ~ x , data=mysample)
+     smallpmat[(g-1),p]<-summary(myfit)$coefficients[2,4] 
+     }
+     }
+smallpmat
 ```
 
 ```{R SNPsummary, echo=FALSE}
@@ -516,7 +564,7 @@ for (thisgroup in 1:3){
 print(groupname[thisgroup])
 w <- which(all.data$randomtwininclude==levels(all.data$randomtwininclude)[thisgroup])
 
-mysample2 <- all.data[w,c(ww,58,88,89)]
+mysample2 <- all.data[w,c(ww,phencols)]
 #range is now 1:13 for nrxn and 14:27 for cntnap2
 ObservedVar=colnames(mysample2)
 LatentVar=c("NRXN","CNTNAP2","Neurodev")
@@ -549,7 +597,7 @@ for (thisgroup in 1:3){
 print(groupname[thisgroup])
 w <- which(all.data$randomtwininclude==levels(all.data$randomtwininclude)[thisgroup])
 
-mysample3 <- all.data[w,c(mykeep,58,88,89)]
+mysample3 <- all.data[w,c(mykeep,phencols)]
 #range is now 1:12 for nrxn and 13:37 for cntnap2
 ObservedVar=colnames(mysample3)
 LatentVar=c("NRXN","CNTNAP2","Neurodev")
@@ -586,7 +634,7 @@ for (thisgroup in 1:3){
 print(groupname[thisgroup])
 w <- which(all.data$trisomy==thisgroup)
 
-mysample <- all.data[w,c(2:48,58,88,89)]
+mysample <- all.data[w,c(2:48,phencols)]
 
 
 #With this reduced sample size, some SNPs have zeroes for all cases - need to exclude these
@@ -626,4 +674,36 @@ allfit[thisgroup,4]<-round(myfit$Path[2,3],2)
 allfit[thisgroup,5]<-myfit$pvalues[2,3]
 }
 kable(allfit,caption='Table 4')
+```
+
+```{R snpmeansplot}
+
+
+summaryBy( nonword_rep_ss~  randomtwininclude+rs7794745, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy( nonword_rep_ss~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy( nonword_rep_ss~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+
+summaryBy( langfactor~  randomtwininclude+rs7794745, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy(langfactor~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy( langfactor~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+
+summaryBy( global_neurodev~  randomtwininclude+rs7794745, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy(global_neurodev~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+summaryBy( global_neurodev~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+
+
+
+```
+##Session information
+```{r sessinfo}
+sessionInfo()
 ```
