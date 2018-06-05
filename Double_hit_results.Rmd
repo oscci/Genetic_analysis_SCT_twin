@@ -110,8 +110,6 @@ for (i in 1:nrow(all.di)){
 }
 all.data <- cbind(all.di,all.short[myvec,])
 
-crotable(all.data$rs7794745imp_T,all.data$rs7794745)
-
 
 ```
 
