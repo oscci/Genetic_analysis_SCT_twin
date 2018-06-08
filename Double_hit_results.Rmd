@@ -338,11 +338,11 @@ par(mfrow=c(1,3))
 
   all.data$randomtwininclude <- as.factor(all.data$randomtwininclude)
    levels(all.data$randomtwininclude)<- c('SCT','Twin1','Twin2') #ensures correct labels for axis
-  mypheno <- c('Nonword repetition','Language factor','Global burden (inverted)')
+  mypheno <- c('Language factor','Global burden (inverted)','Nonword repetition')
   mycol<-which(colnames(all.data)%in%c('nonword_rep_jittered','langfactor','global_jittered')) #find the columns corresponding to phenotypes
 
   colnames(all.data)[mycol] #check we have correct variables
-  myylim <- matrix(c(0,20,-30,30,0,10),nrow=3,byrow=TRUE)
+  myylim <- matrix(c(-30,30,0,20,-10,25),nrow=3,byrow=TRUE)
   for (i in 1:3){
   beanplot(all.data[,mycol[i]]~ all.data$randomtwininclude,
            col='lightgray',
