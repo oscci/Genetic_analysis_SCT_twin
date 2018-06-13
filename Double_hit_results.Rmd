@@ -1,7 +1,7 @@
 ---
 title: 'Variation in neurodevelopmental outcomes: Results'
 author: "Dianne F. Newbury, Nuala H. Simpson, Paul A. Thompson, Dorothy V. M. Bishop"
-date: "07/05/2018"
+date: "13/06/2018"
 output:
   word_document: default
   pdf_document: default
@@ -701,6 +701,145 @@ summaryBy( global_neurodev~  randomtwininclude+rs2710102imp_G, data = all.data,
 
 
 ```
+```{R snpmeansplot}
+ 
+ 
+# t1<-summaryBy( nonword_rep_ss~  randomtwininclude+rs7794745, data = all.data,
+#   FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+#
+# t1$phenotype<-rep("nonword_rep_ss",9)
+# t1$SNP<-rep(colnames(t1)[2],9)
+# colnames(t1)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+t2<-summaryBy( nonword_rep_ss~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t2$phenotype<-rep("nonword_rep_ss",9)
+t2$SNP<-rep(colnames(t2)[2],9)
+colnames(t2)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+ 
+t3<-summaryBy( nonword_rep_ss~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t3$phenotype<-rep("nonword_rep_ss",9)
+t3$SNP<-rep(colnames(t3)[2],9)
+colnames(t3)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+# t4<-summaryBy( langfactor~  randomtwininclude+rs7794745, data = all.data,
+#   FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+#
+# t4$phenotype<-rep("langfactor",9)
+# t4$SNP<-rep(colnames(t4)[2],9)
+# colnames(t4)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+t5<-summaryBy(langfactor~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t5$phenotype<-rep("langfactor",9)
+t5$SNP<-rep(colnames(t5)[2],9)
+colnames(t5)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+t6<-summaryBy( langfactor~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t6$phenotype<-rep("langfactor",9)
+t6$SNP<-rep(colnames(t6)[2],9)
+colnames(t6)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+# t7<-summaryBy( global_neurodev~  randomtwininclude+rs7794745, data = all.data,
+#   FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+#
+# t7$phenotype<-rep("global_neurodev",9)
+# t7$SNP<-rep(colnames(t7)[2],9)
+# colnames(t7)[1:5]<-c("Group","Genotype","N","Mean","SD")
+ 
+t8<-summaryBy(global_neurodev~  randomtwininclude+rs7794745imp_T, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t8$phenotype<-rep("global_neurodev",9)
+t8$SNP<-rep(colnames(t8)[2],9)
+colnames(t8)[1:5]<-c("Group","Genotype","N","Mean","SD")
+t8$Mean<-11-t8$Mean
+ 
+t9<-summaryBy( global_neurodev~  randomtwininclude+rs2710102imp_G, data = all.data,
+  FUN = function(x) { c(n=length(x),m = mean(x), s = sd(x)) } )
+ 
+t9$phenotype<-rep("global_neurodev",9)
+t9$SNP<-rep(colnames(t9)[2],9)
+colnames(t9)[1:5]<-c("Group","Genotype","N","Mean","SD")
+t9$Mean<-11-t9$Mean
+ 
+plot.dat<-rbind(t2,t3)
+plot.dat<-rbind(plot.dat,t5)
+plot.dat<-rbind(plot.dat,t6)
+plot.dat<-rbind(plot.dat,t8)
+plot.dat<-rbind(plot.dat,t9)
+ 
+plot.dat$Group<-as.factor(plot.dat$Group)
+plot.dat$phenotype<-as.factor(plot.dat$phenotype)
+plot.dat$SNP<-as.factor(plot.dat$SNP)
+levels(plot.dat$SNP)<-c("rs2710102", "rs7794745")
+levels(plot.dat$phenotype)<-c('Global Neurodev(inverted)', 'Language Factor', 'Nonword Repetition')
+ 
+library(ggplot2)
+library(grid)
+library(gridExtra)
+ 
+ggplot(plot.dat,aes(x=Genotype,y=Mean,group=Group,colour= Group))+geom_line()+geom_point(aes(shape = Group))+geom_errorbar(aes(ymin=Mean-SD, ymax=Mean+SD), width=.2,
+                 position=position_dodge(0.05))+facet_wrap(SNP~phenotype, scales="free")+theme_bw()+theme(legend.position="bottom",text = element_text(size=20))+ scale_x_continuous(breaks=seq(0,2,1))
+ 
+ 
+plot.dat1 <- plot.dat[plot.dat$phenotype=="Global Neurodev(inverted)",]
+plot.dat2 <- plot.dat[plot.dat$phenotype=="Language Factor",]
+plot.dat3 <- plot.dat[plot.dat$phenotype=="Nonword Repetition",]
+ 
+p1<-ggplot(plot.dat1,aes(x=Genotype,y=Mean,group=Group,colour= Group))+geom_line()+geom_point(aes(shape = Group))+geom_errorbar(aes(ymin=Mean-SD, ymax=Mean+SD), width=.2,
+                 position=position_dodge(0.05))+facet_grid(SNP~phenotype)+theme_bw()+theme(legend.position="bottom",text = element_text(size=20),
+  strip.text.y = element_blank())+ scale_x_continuous(breaks=seq(0,2,1))+xlab(" ")
+ 
+p2<-ggplot(plot.dat2,aes(x=Genotype,y=Mean,group=Group,colour= Group))+geom_line()+geom_point(aes(shape = Group))+geom_errorbar(aes(ymin=Mean-SD, ymax=Mean+SD), width=.2,
+                 position=position_dodge(0.05))+facet_grid(SNP~phenotype)+theme_bw()+theme(legend.position="bottom",text = element_text(size=20),
+  strip.text.y = element_blank(),axis.title.y=element_blank())+ scale_x_continuous(breaks=seq(0,2,1))+xlab("N. minor alleles")
+ 
+p3<-ggplot(plot.dat3,aes(x=Genotype,y=Mean,group=Group,colour= Group))+geom_line()+geom_point(aes(shape = Group))+geom_errorbar(aes(ymin=Mean-SD, ymax=Mean+SD), width=.2,
+                 position=position_dodge(0.05))+facet_grid(SNP~phenotype)+theme_bw()+theme(legend.position="bottom",text = element_text(size=20),axis.title.y=element_blank())+ scale_x_continuous(breaks=seq(0,2,1))+xlab(" ")
+ 
+grid.arrange(p1, p2, p3, nrow = 1)
+ 
+grid_arrange_shared_legend <- function(..., ncol = length(list(...)), nrow = 1, position = c("bottom", "right")) {
+ 
+  plots <- list(...)
+  position <- match.arg(position)
+  g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+  legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+  lheight <- sum(legend$height)
+  lwidth <- sum(legend$width)
+  gl <- lapply(plots, function(x) x + theme(legend.position="none"))
+  gl <- c(gl, ncol = ncol, nrow = nrow)
+ 
+  combined <- switch(position,
+                     "bottom" = arrangeGrob(do.call(arrangeGrob, gl),
+                                            legend,
+                                            ncol = 1,
+                                            heights = unit.c(unit(1, "npc") - lheight, lheight)),
+                     "right" = arrangeGrob(do.call(arrangeGrob, gl),
+                                           legend,
+                                           ncol = 2,
+                                           widths = unit.c(unit(1, "npc") - lwidth, lwidth)))
+ 
+  grid.newpage()
+  grid.draw(combined)
+ 
+  # return gtable invisibly
+  invisible(combined)
+ 
+}
+ 
+grid_arrange_shared_legend(p1, p2, p3, nrow = 1)
+ 
+```
+
 ##Session information
 ```{r sessinfo}
 sessionInfo()
