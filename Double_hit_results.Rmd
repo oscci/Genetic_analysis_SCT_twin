@@ -1,7 +1,7 @@
 ---
 title: 'Variation in neurodevelopmental outcomes: Results'
 author: "Dianne F. Newbury, Nuala H. Simpson, Paul A. Thompson, Dorothy V. M. Bishop"
-date: "13/06/2018"
+date: "14/06/2018"
 output:
   word_document: default
   pdf_document: default
@@ -15,13 +15,14 @@ require(tidyverse)
 require(lavaan)
 require(yarrr) #for pirate plot
 require(beanplot)
+require(synthpop) #to create synthesised data for sharing
 require(expss) #for fancy tables
 #source("https://bioconductor.org/biocLite.R")
 #biocLite("ASGSCA") #ASGSA is loaded via bioconductor
 #see http://bioconductor.org/packages/release/bioc/html/ASGSCA.html
 
 require(ASGSCA)
-
+require(mtvnorm) #for simulating random normal data (avoids some problems arising with MASS)
 require(MASS) #used to simulate data when getting expected p-values
 library(knitr) #needed for kable
 require(stargazer)
@@ -197,6 +198,7 @@ fit.mod.E2 <- cfa(model.f5a, data = all.data,estimator = "ML",missing = "ML")
 lbls<-c("Vocabulary", "Woodcock\nJohnson", "Sentence\nRepetition", "Oromotor","Language")
 semPaths(fit.mod.E2, "std", title = TRUE, curvePivot = TRUE, edge.label.cex = 1.2,width=10,height=5,nodeLabels=lbls,intercepts = FALSE,sizeMan = 10, sizeLat = 10)
 all.data$langfactor <- predict(fit.mod.E2) #factor scores
+
 ```
 
 
@@ -329,11 +331,11 @@ gencor <-data.frame(cor(all.data[,2:48]))
 
 ```
 ##Results
-Figure 5 shows the distributions of scores on the three phenotypes for children with sex chromosome trisomies and the two comparison groups. The scores for Global burden are inverted so a low score corresponds to impairment, as with the other two measures, and scores on Global burden and Nonword repetition are jittered vertically for clarity. Phenotypic characteristics of children with SCTs will be the focus of a separate publication, but we may note that, as anticipated, the group with SCTs show evidence of impairment on all three phenotype measures, but with a wide range of scores. Nonword repetition correlated `r round(phencor[1,2],2)` with the language factor, and `r round(phencor[1,3],2)` with the global impairment rating. The language factor and global impairment rating correlated `r round(phencor[2,3],2)`.
-(Note to self: used beanplots as problems with pirate plot in a loop - need to fix this).
-```{r pirate, fig.width=15,fig.height=6,fig.cap="Figure 5", echo=FALSE}
+Figure 5 shows the distributions of scores on the three phenotypes for children with sex chromosome trisomies and the two comparison groups. The scores for Global burden are inverted so a low score corresponds to impairment, to be consistent with the other two measures, and scores on Global burden and Nonword repetition are jittered vertically for clarity. Phenotypic characteristics of children with SCTs will be the focus of a separate publication, but we may note that, as anticipated, the group with SCTs show evidence of impairment on all three phenotype measures, but with a wide range of scores. For the combined sample with all cases (N = `r nrow(phendat)`), the three phenotype measures were intercorrelated: Nonword repetition correlated `r round(phencor[1,2],2)` with the language factor, and `r round(phencor[1,3],2)` with the global impairment rating. The language factor and global impairment rating correlated `r round(phencor[2,3],2)`.
+```{r beanplot, fig.width=15,fig.height=6,fig.cap="Figure 5", echo=FALSE}
 ##Plot phenotypes for 3 groups
-#Use pirate plot to show individual data (doesn't work in loop so here have beanplot)
+#For inline figure use beanplot as this allows a loop.
+all.data$langfactor <- as.numeric(all.data$langfactor)
 par(mfrow=c(1,3))
 
   all.data$randomtwininclude <- as.factor(all.data$randomtwininclude)
@@ -358,7 +360,37 @@ par(mfrow=c(1,3))
            )
   }
 
+```
+
+```{r pngpirate, echo=FALSE}
+#Make png with 3 pirate plots
+png(filename="pirate_fig5.png", 
+    units="in", 
+    width=6, 
+    height=3, 
+    pointsize=10, 
+    res=300)
+par(mfrow=c(1,3))
+  myylim <- matrix(c(-30,30,0,20,-10,25),nrow=3,byrow=TRUE)
+ 
+  pirateplot(formula=nonword_rep_jittered~ randomtwininclude ,
+             data=all.data,ylab=mypheno[3],xlab='',
+           ylim=c(0,20),point.o=.6,inf.f.o=0,inf.b.o=0,cex.lab=1.2)
+  pirateplot(formula=langfactor~ randomtwininclude ,
+             data=all.data,ylab=mypheno[1],xlab='',
+           ylim=c(-30,30),point.o=.6,inf.f.o=0,inf.b.o=0,cex.lab=1.2)
+  pirateplot(formula=global_jittered~ randomtwininclude ,
+             data=all.data,ylab=mypheno[2],xlab='',
+           ylim=c(0,10),jitter.val=.065,point.o=.6,inf.f.o=0,inf.b.o=0,cex.lab=1.2)
+  
 par(mfrow=c(1,1)) #turn off split screen
+
+dev.off()
+```
+
+*Figure 5: Pirate plots (Phillips, 2017) for SCT and two twin groups,  showing individual cases as points, with bold line depicting median, for Nonword repetition (scaled score), Language factor and Global neurodevelopmental impairment (inverted so low score reflects impairment).*
+
+```{r nperm, echo=FALSE}
 mynperm=200 # Specify here N permutations for GSCA - will refer to this in the text.
 #to test prog use 200 for speed; for final version alter to 5000 (takes several hrs to run)
 ```
@@ -521,7 +553,7 @@ mydatanull <- mvrnorm(n = nPop,rep(0,nVar), myCov) #mean 0 and SD 1 for all vari
 #simulate a sample of 185: given that only comparison sample has any hint of association
 myN <- 185
 nullp <- vector() #set up vector to hold all p-values
-nsim <- 200 #N simulations - need lots to get accurate p-distribution estimate
+nsim <- 1000 #N simulations - need lots to get accurate p-distribution estimate
              #but can test program with a small number
 for (j in 1:nsim){
   thissample <- sample(nPop,myN) #select a random myN from the big population
@@ -535,12 +567,21 @@ for (j in 1:nsim){
   }
 }
 #Plot the distribution of p-values for null situation and both twin groups
-par(mfrow=c(3,1))
-hist(nullp, breaks=40)
+png(filename="histo_pvals.png", 
+    units="in", 
+    width=5, 
+    height=4, 
+    pointsize=10, 
+    res=300)
+par(mfrow=c(2,2))
+hist(nullp, breaks=40,xlab='p-value',ylab='Freq',main='Simulated with null effect')
+obsp.sct <- c(pmatrix[,2],pmatrix[,3],pmatrix[,4])
+hist(obsp.sct,breaks=40,xlab='p-value',ylab='Freq',main='SCT group: observed p-values')
 obsp.twinA <- c(pmatrix[,5],pmatrix[,6],pmatrix[,7])
-hist(obsp.twinA,breaks=40)
+hist(obsp.twinA,breaks=40,xlab='p-value',ylab='Freq',main='Twin A: observed p-values')
 obsp.twinB <- c(pmatrix[,8],pmatrix[,9],pmatrix[,10])
-hist(obsp.twinB,breaks=40)
+hist(obsp.twinB,breaks=40,xlab='p-value',ylab='Freq',main='Twin B: observed p-values')
+dev.off()
 ```
 ```{R write data, echo=FALSE}
 #Write the original data to a csv file after removing IDs
@@ -551,6 +592,138 @@ all.data$record_id <-1:500
 short.data<- all.data[,-c(69,71,86)]
 write.csv(all.data,'genopheno_data_sct_twin.csv')
 ```
+
+```{R simulatedata, echo=FALSE}
+#create simulated dataset with same characteristics
+
+#Try doing this separately for each subset where characteristics might affect results.
+#For trisomies, this is trisomy and why_tested (3 vs other categories)
+
+simvars <- c(2:48,58,89:90)
+w <- which(all.data$why_tested!=3)
+unbiased <- all.data[w,]
+w <- which(unbiased$trisomy==1)
+realdat.xxx.u <- unbiased[w,simvars]
+w <- which(unbiased$trisomy==2)
+realdat.xxy.u <- unbiased[w,simvars]
+w <- which(unbiased$trisomy==3)
+realdat.xyy.u <- unbiased[w,simvars]
+
+w <- which(all.data$why_tested==3)
+biased <- all.data[w,]
+w <- which(biased$trisomy==1)
+realdat.xxx.b <- biased[w,simvars]
+w <- which(biased$trisomy==2)
+realdat.xxy.b <- biased[w,simvars]
+w <- which(biased$trisomy==3)
+realdat.xyy.b <- biased[w,simvars]
+
+#Now create a dataframe for the simulated data from all groups
+sct.sim <-cbind(realdat.xxx.u[,1:2], realdat.xxx.u) #2 extra cols for trisomy/bias
+#just use duplicates as these will be overwritten so values don't matter
+colnames(sct.sim)[1:2] <- c('Trisomy','Bias')
+sct.sim[,] <-NA
+
+sct.synth <- sct.sim #alternative approach using synthpop
+#for each subset, now create simulated dataset
+alldfs <- list(realdat.xxx.u,realdat.xxx.b,
+               realdat.xxy.u,realdat.xxy.b,
+               realdat.xyy.u,realdat.xyy.b)
+allgroups <-c(1,1,2,2,3,3)
+allbias <-c(0,1,0,1,0,1)
+
+for (i in 1:length(alldfs)){
+  mydat <- alldfs[[i]]
+  mycovs <- cov(mydat)
+  mymeans <- as.vector(colMeans(data.frame(mydat)))
+ myn <- nrow(mydat)
+ #----------------------------------------------------------
+ this.synth <- syn(mydat)$syn #first method using synthpop
+ 
+ myoffset <- nrow(sct.synth)
+ if(i ==1) {myoffset <- 0}
+ firstrow <-myoffset+1
+ lastrow <- myoffset+myn
+ sct.synth[firstrow:lastrow,1]<-allgroups[i]
+ sct.synth[firstrow:lastrow,2]<-allbias[i]
+ sct.synth[firstrow:lastrow,3:52]<-this.synth
+ #----------------------------------------------------------
+ 
+ #Now try alternative method using mvtnorm
+ this.sim <- rmvnorm(myn,mymeans,mycovs) #creates multivariate normal array
+ #This needs tweaking because most variables not normal
+myoffset <- nrow(sct.sim)
+if(i ==1) {myoffset <- 0}
+firstrow <-myoffset+1
+lastrow <- myoffset+myn
+sct.sim[firstrow:lastrow,1]<-allgroups[i]
+sct.sim[firstrow:lastrow,2]<-allbias[i]
+#Now need to deal with non-normality of SNP columns
+for (j in 1:47) { #columns with SNPS
+sct.sim[firstrow:lastrow,(j+2)]<-2 #default is genotype 2
+myf <- table(mydat[,j])
+rr <- rank(this.sim[,j])
+w<-which(rr<(myf[1]+myf[2]+1))
+sct.sim[(firstrow+w-1),(j+2)]<-1
+w<-which(rr<(myf[1]+1))
+sct.sim[(firstrow+w-1),(j+2)]<-0
+}
+sct.sim$nonword_rep_ss[firstrow:lastrow] <-round(this.sim[,48],0)
+sct.sim$langfactor[firstrow:lastrow] <-this.sim[,49]
+sct.sim$global_neurodev[firstrow:lastrow] <-this.sim[,50]
+}
+#Need to deal with skew in global neurodev
+#create df with all trisomies
+forceglobal <-0
+if (forceglobal==1){
+df.tri <- rbind(biased, unbiased)
+myf <- table(df.tri$global_neurodev)
+#values range from 2 to 8, so this is hardcoded
+tempglobal <- sct.sim$global_neurodev
+rr <- rank(tempglobal)
+for (k in seq(8,2,-1)){
+
+  lw<-length(which(df.tri$global_neurodev<(k+1)))
+  w<-which(rr<(lw+1))
+  sct.sim$global_neurodev[w]<-k
+}
+} #this actually messes up correlational structure
+
+par(mfrow=c(3,1))
+hist(all.data$global_neurodev[1:130])
+hist(sct.sim$global_neurodev)
+hist(sct.synth$global_neurodev)
+
+cor(all.data[1:130,c(58,89,90)])
+cor(sct.sim[,50:52])
+cor(sct.synth[,50:52])
+
+rownames(sct.sim)<-1:nrow(sct.sim)
+rownames(sct.synth)<-1:nrow(sct.synth)
+write.csv(sct.synth,'synthpop_sct.csv')
+write.csv(sct.sim,'sim_sct.csv')
+
+#synthesising from whole dataset with trisomy/bias as predictors.
+all.data$bias<-0
+w <- which(all.data$why_tested==3)
+all.data$bias[w] <-1
+simvars <- c(86,93,2:48,58,89:90) #trisomy, bias, all SNPS, then 3 phenos
+sct.all <-all.data[1:130,simvars]
+syn.all <-syn(sct.all)
+compare.synds(syn.all,sct.all) #need whole list for compare function
+syn.data <-syn.all$syn #just the synthesised data
+rsyn<-cor(as.matrix(syn.data))
+rsct<-cor(sct.all)
+rdiff<-rsct-rsyn
+hist(rdiff,breaks=20) #differences between real and synthetic correlations 
+
+names <- c(1:49) #columns to convert to factors
+syn.all[,names] <- lapply(syn.all[,names] , factor) #make as factors to give more helpful summary output
+summary(syn.all)
+
+```
+
+
 ```{r reducedset,echo=FALSE}
 #A couple of alternative runs of GSCA just to check whether atypical SNPs affect results.
 # 1. Try redoing after omitting those with no homozygous rare allele
@@ -619,8 +792,8 @@ In a final exploratory analysis, the GSCA was re-run for each of the three karyo
 ```{r GSCAkary,echo=FALSE}
 
 #Run GSCA on each of the 3 karyotypes
-
-
+#NB restrict to prenatally-diagnosed, ie pre_postnatal_diag==1
+mynperm <- 5000
 options(scipen = 999) #turn off scientific notation
 allfit<-data.frame(matrix(0,3,5))  #make data table to save results
 colnames(allfit)<-c('Group','NRXN1 path','NRXN1 p-value','CNTNAP2 path','CNTNAP2 p-value')
@@ -628,11 +801,12 @@ colnames(allfit)<-c('Group','NRXN1 path','NRXN1 p-value','CNTNAP2 path','CNTNAP2
 thisgroup <- 0 #SCT
 groupname <-c('XXX','XXY','XYY')
 
+unbiased<-filter(all.data,why_tested!=3)
 for (thisgroup in 1:3){
 print(groupname[thisgroup])
-w <- which(all.data$trisomy==thisgroup)
+w <- which(unbiased$trisomy==thisgroup)
 
-mysample <- all.data[w,c(2:48,phencols)]
+mysample <- unbiased[w,c(2:48,phencols)]
 
 
 #With this reduced sample size, some SNPs have zeroes for all cases - need to exclude these
@@ -665,7 +839,7 @@ B0[2,3]=1
  myfit<-GSCA(mysample,W0, B0,latent.names=LatentVar, estim=TRUE,path.test=TRUE,path=NULL,nperm=mynperm)
 
 #print(myfit)
-allfit[thisgroup,1]<-groupname[thisgroup]
+allfit[thisgroup,1]<-paste(groupname[thisgroup], 'N = ',nrow(mysample))
 allfit[thisgroup,2]<-round(myfit$Path[1,3],2)
 allfit[thisgroup,3]<-myfit$pvalues[1,3]
 allfit[thisgroup,4]<-round(myfit$Path[2,3],2)
