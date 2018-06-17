@@ -459,7 +459,7 @@ Further exploratory analyses were conducted to rule out the possibility that our
 
 ###Appendix 8
 ##Association of individual SNPs/phenotypes
-NB with a total of 3 tests for each of 47 SNPs, there are 141 tests; Bonferroni corrected p-value is .0003. See below for distribution of p-values, none of which was less than the Bonferroni-corrected value.
+NB with a total of 3 tests for each of 47 SNPs, there are 141 tests for each of the 3 groups; Bonferroni corrected p-value is .0001. See below for distribution of p-values, none of which was less than the Bonferroni-corrected value.
 Each column corresponds to one SNP. The first block shows results for the SCT group, then twin subsample A (TWA), then twin subsample B (TWB). The initial rows show the N cases with 0, 1 or 2 copies of the minor allele. This is followed by values for the regression slope (b) and the p-value (p) for each of the phenotypes (nonword repetition = nwd; language factor = lang; global neurodevelopmental = global).
 
 
@@ -540,6 +540,14 @@ kable(sumtab7)
 # flextable::regulartable(data.frame(sumtab5))
 # flextable::regulartable(data.frame(sumtab6))
 # flextable::regulartable(data.frame(sumtab7))
+w<-which(is.na(sumtab1))
+sumtab1[w]<-0
+trytab<-data.frame(sumtab1)
+
+
+trytab <-cbind(row.names(trytab),trytab)
+colnames(trytab)<-c('_',1:6)
+flextable::regulartable(trytab)
 
 
 ```
@@ -973,25 +981,31 @@ dev.off() #stop sending output to png
 
 all.data$ID <-1:500
 all.data$record_id <-1:500
+all.data$bias<-NA
+w <- which(all.data$why_tested==3)
+all.data$bias[w] <-1
+w <- which(all.data$why_tested!=3)
+all.data$bias[w] <-0
 short.data<- all.data[,-c(69,71,86)]
-write.csv(all.data,'genopheno_data_sct_twin.csv')
+short.data <- short.data[,-c(1:48)]
+short.data <- short.data[,c(1,33:35,41,10,37,38,3:9,11:25,27:31)]
+write.csv(short.data,'osf_pheno_sct_twin.csv')
+
+
 ```
 
 ```{R simulatedata, echo=FALSE}
 #create simulated dataset with same characteristics
 
 #SCT cases: synthesise from whole dataset with trisomy/bias as predictors.
-all.data$bias<-NA
-w <- which(all.data$why_tested==3)
-all.data$bias[w] <-1
-w <- which(all.data$why_tested!=3)
-all.data$bias[w] <-0
 
-simvars <- c(86,92,2:48,58,88:89) #trisomy, bias, all SNPS, then 3 phenos
+
+simvars <- c(85,92,2:48,58,88:89) #trisomy, bias, all SNPS, then 3 phenos
 sct.all <-all.data[1:130,simvars]
 syn.all <-syn(sct.all) #NB this creates a list; we need $syn part
-compare.synds(syn.all,sct.all) #compare function only works prior to unlisting
+syncompare<-compare.synds(syn.all,sct.all) #compare function only works prior to unlisting
 #This shows the frequencies of different values in original and synthesised data
+syncompare$plots
 syn.data <-syn.all$syn #just the synthesised data
 rsyn<-cor(as.matrix(syn.data))
 rsct<-cor(sct.all)
@@ -1002,8 +1016,36 @@ names <- c(1:49) #columns to convert to factors
 syn.data[,names] <- lapply(syn.data[,names] , factor) #factors give more succinct summary output
 summary(syn.data)
 
+sctcovs <- cov(sct.all)
+sctcovs <- rbind(sctcovs,colMeans(sct.all))
+row.names(sctcovs)[53]='ColMean'
+write.csv(syn.data,'synthpop_sct.csv')
+write.csv(sctcovs,'real_covs_sct.csv')
 ```
+```{R simulatetwinA, echo=FALSE}
+#create simulated dataset for twinA
 
+simvars <- c(83,84,2:48,58,88:89) #zygosity, all SNPS, then 3 phenos
+twin.a <-all.data[,simvars]
+twin.a <- filter(twin.a,TwinOrSCT=='Twin1')
+twin.a <-twin.a[,-1] #remove twin column
+syn.twina <-syn(twin.a) #NB this creates a list; we need $syn part
+twinsyncompare <- compare.synds(syn.twina,twin.a) #compare function only works prior to unlisting
+twinsyncompare$plots
+#This shows the frequencies of different values in original and synthesised data
+syn.twina <-syn.twina$syn #just the synthesised data
+rsyntwin<-cor(as.matrix(syn.twina))
+rtwin<-cor(twin.a)
+rdifftwin<-rsyntwin-rtwin #differences between real and synthetised correlations
+hist(rdifftwin,breaks=20,main='Difference between real/synthesised dataset: correlations')  
+
+
+twincovs <- cov(twin.a)
+twincovs <- rbind(twincovs,colMeans(twin.a))
+row.names(twincovs)[52]='ColMean'
+write.csv(syn.twina,'synthpop_twina.csv')
+write.csv(twincovs,'real_covs_twina.csv')
+```
 
 ##Session information
 ```{r sessinfo}
