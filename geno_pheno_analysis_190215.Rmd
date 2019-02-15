@@ -7,6 +7,12 @@ output:
   html_document: default
 ---
 
+Updated 15th Feb 2019
+Just checking heritability estimates for twin sample for the 3 phenotypes and PIQ
+
+NB this based on all MZ and DZ - high PIQ heritaiblity might reflect inclusion of opposite sex twins.
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 require(tidyverse)
