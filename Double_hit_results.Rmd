@@ -9,6 +9,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+#Correction made 19th May 2021 - line 518 : some SNPs had been omitted from Appendix 9
 knitr::opts_chunk$set(echo = TRUE)
 #NB user should manually set working directory to source file location
 
@@ -64,7 +65,7 @@ all.di <- read.csv(paste0(read.di.dir,di.file),stringsAsFactors = FALSE)
 #Read in latest SCT from redcap.
 #Do the same for the twins.
 #Select variables to be used.
-redcap.dir <-"~/Dropbox/ERCadvanced/project SCT analysis/Data from Redcap/"
+redcap.dir <-"~/Dropbox/ERCadvanced/project SCT analysis/Data from Redcap/old versions/"
 #Use latest version
 sct.redcap <- 'SCTData_DATA_2018-01-22_1351.csv'
 twin.redcap <- 'TwinsData_DATA_2018-01-22_1400.csv'
@@ -85,8 +86,8 @@ keepcols <- c('record_id','age_at_test','partial_testing','wasi_matrices_ss','wa
               'hyperkinetic_icd_r1','adhd_comb_dsm_r1','adhd_hyp_dsm_r1','adhd_inatt_dsm_r1',
               'conduct_dsm_r1','asd_dsm_r1','autism_icd_r1','srs_t_score')
 
-sct.short <- dplyr::select(sct.data,keepcols)
-twin.short <-dplyr::select(twin.data,keepcols)
+sct.short <- dplyr::select(sct.data,all_of(keepcols)) #modified to 'all_of' - suggestion by R
+twin.short <-dplyr::select(twin.data,all_of(keepcols))
 #----------------------------------------------------------------------------------
 ```
 
@@ -513,7 +514,8 @@ for (ii in 2:48){
   sumtable[,c(24,26,28)]<-round(pmatrix[,8:10],3) #p values for group SCT, 3 phenos
 write_csv(sumtable,'SNPsummary.csv')
 #break into tables that will print on A4 and transpose
-sumtab1<-t(sumtable[1:6,])#NRXN1 
+sumtab1<-t(sumtable[1:6,])#NRXN1
+sumtab1a<-t(sumtable[7:11,])  #previously omitted in error
 sumtab2<-t(sumtable[12:17,]) 
 sumtab3<-t(sumtable[18:23,])
 sumtab4<-t(sumtable[24:30,]) #CNTNAP2 
@@ -522,6 +524,7 @@ sumtab6<-t(sumtable[37:42,])
 sumtab7<-t(sumtable[43:47,]) 
 print('NRXN1 SNPs')
 kable(sumtab1)
+kable(sumtab1a)
 kable(sumtab2)
 kable(sumtab3)
 print('CNTNAP2 SNPs')
